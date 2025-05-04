@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}STEPBible Explorer{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .hebrew-text {
+            font-family: 'SBL Hebrew', 'Times New Roman', serif;
+            font-size: 1.2em;
+            direction: rtl;
+        }
+        .greek-text {
+            font-family: 'SBL Greek', 'Times New Roman', serif;
+            font-size: 1.2em;
+        }
+        .arabic-text {
+            font-family: 'Amiri', 'Times New Roman', serif;
+            font-size: 1.2em;
+            direction: rtl;
+        }
+        .morphology-code {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .word-analysis {
+            border-bottom: 1px dotted #ccc;
+            cursor: pointer;
+            padding: 2px;
+        }
+        .word-analysis:hover {
+            background-color: #f8f9fa;
+        }
+        .footer {
+            margin-top: 50px;
+            padding: 20px 0;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">STEPBible Explorer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="lexiconDropdown" role="button" data-bs-toggle="dropdown">
+                            Lexicons
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/search?type=lexicon">Search Lexicons</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/lexicon/hebrew/H1">Hebrew Lexicon</a></li>
+                            <li><a class="dropdown-item" href="/lexicon/greek/G1">Greek Lexicon</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="bibleDropdown" role="button" data-bs-toggle="dropdown">
+                            Bible Texts
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/verse/Genesis/1/1">Hebrew Old Testament</a></li>
+                            <li><a class="dropdown-item" href="/verse/Matthew/1/1">Greek New Testament</a></li>
+                            <li><a class="dropdown-item" href="/arabic">Arabic Bible</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" role="button" data-bs-toggle="dropdown">
+                            Tools
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/morphology">Morphology Codes</a></li>
+                            <li><a class="dropdown-item" href="/names">Proper Names</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/semantic-search">Semantic Search</a></li>
+                            <li><a class="dropdown-item" href="/concordance/G26">Word Concordance</a></li>
+                            <li><a class="dropdown-item" href="/cross-references/John/3/16">Cross-References</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/verse-resources/John/3/16">External Resources</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <form class="d-flex" action="/search" method="get">
+                    <input class="form-control me-2" type="search" name="q" placeholder="Search">
+                    <button class="btn btn-light" type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>STEPBible Explorer</h5>
+                    <p>A tool for exploring lexicons and tagged Bible texts from the STEPBible project.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/search?type=lexicon">Lexicon Search</a></li>
+                        <li><a href="/arabic">Arabic Bible</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Data</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="https://github.com/tyndale/STEPBible-Data" target="_blank">STEPBible Data</a></li>
+                        <li><a href="/semantic-search">Semantic Search</a></li>
+                        <li><a href="/names">Proper Names</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12 text-center">
+                    <p class="text-muted">
+                        STEPBible data is licensed under CC BY 4.0 by Tyndale House, Cambridge, UK.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

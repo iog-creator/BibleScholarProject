@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ name.name }} - Bible Proper Name{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/names">Names</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ name.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="card-title">{{ name.name }}</h2>
+            <h6 class="card-subtitle">{{ name.type }}{% if name.gender %} - {{ name.gender }}{% endif %}</h6>
+        </div>
+        
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    {% if name.description %}
+                    <h4>Description</h4>
+                    <p class="lead">{{ name.description }}</p>
+                    {% endif %}
+                    
+                    {% if name.forms %}
+                    <h4>Original Forms</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Language</th>
+                                    <th>Form</th>
+                                    <th>Transliteration</th>
+                                    <th>Strong's ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form in name.forms %}
+                                <tr>
+                                    <td>{{ form.language }}</td>
+                                    <td dir="{% if form.language == 'Hebrew' %}rtl{% else %}ltr{% endif %}">{{ form.form }}</td>
+                                    <td>{{ form.transliteration }}</td>
+                                    <td>{% if form.strongs_id %}<a href="/lexicon/{% if form.language == 'Hebrew' %}hebrew{% else %}greek{% endif %}/{{ form.strongs_id }}">{{ form.strongs_id }}</a>{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                    
+                    {% if name.relationships %}
+                    <h4>Relationships</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Relationship</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for relationship in name.relationships %}
+                                <tr>
+                                    <td>{{ relationship.relationship_type|capitalize }}</td>
+                                    <td><a href="/names/{{ relationship.related_id }}">{{ relationship.related_name }}</a></td>
+                                    <td>{{ relationship.related_type }}{% if relationship.related_gender %} ({{ relationship.related_gender }}){% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">Biblical References</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if name.forms and name.forms[0].references %}
+                            <ul class="list-group list-group-flush">
+                                {% for reference in name.forms[0].references[:10] %}
+                                <li class="list-group-item">
+                                    <a href="/bible/{{ reference.reference.split('.')[0] }}/{{ reference.reference.split('.')[1]|int }}/{{ reference.reference.split(':')[1]|int }}">
+                                        {{ reference.reference }}
+                                    </a>
+                                    {% if reference.context %}
+                                    <small class="text-muted d-block">{{ reference.context }}</small>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                                {% if name.forms[0].references|length > 10 %}
+                                <li class="list-group-item text-center">
+                                    <em>And {{ name.forms[0].references|length - 10 }} more references...</em>
+                                </li>
+                                {% endif %}
+                            </ul>
+                            {% else %}
+                            <p class="text-muted">No references available</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if name.forms and name.forms|length > 1 and name.forms[1].references %}
+                    <div class="card mt-3">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">Additional References</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for reference in name.forms[1].references[:10] %}
+                                <li class="list-group-item">
+                                    <a href="/bible/{{ reference.reference.split('.')[0] }}/{{ reference.reference.split('.')[1]|int }}/{{ reference.reference.split(':')[1]|int }}">
+                                        {{ reference.reference }}
+                                    </a>
+                                    {% if reference.context %}
+                                    <small class="text-muted d-block">{{ reference.context }}</small>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                                {% if name.forms[1].references|length > 10 %}
+                                <li class="list-group-item text-center">
+                                    <em>And {{ name.forms[1].references|length - 10 }} more references...</em>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="/names" class="btn btn-secondary">Back to Names</a>
+    </div>
+</div>
+{% endblock %} 

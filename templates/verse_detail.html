@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}{{ verse.book_name }} {{ verse.chapter_num }}:{{ verse.verse_num }} - STEPBible Explorer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/search">Search</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ verse.book_name }} {{ verse.chapter_num }}:{{ verse.verse_num }}</li>
+            </ol>
+        </nav>
+        
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>{{ verse.book_name }} {{ verse.chapter_num }}:{{ verse.verse_num }}</h2>
+                    <p class="text-muted">{{ verse.translation_source }}</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{{ url_for('cross_references', book=verse.book_name, chapter=verse.chapter_num, verse=verse.verse_num) }}" class="btn btn-outline-secondary">Cross References</a>
+                    <a href="{{ url_for('verse_with_resources', book=verse.book_name, chapter=verse.chapter_num, verse=verse.verse_num) }}" class="btn btn-outline-primary">External Resources</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4>Verse Text</h4>
+                        <p class="lead">{{ verse.verse_text }}</p>
+                    </div>
+                </div>
+                
+                {% if greek_words and greek_words|length > 0 %}
+                <hr>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h4>Greek Text Analysis</h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Greek</th>
+                                        <th>Transliteration</th>
+                                        <th>Translation</th>
+                                        <th>Strong's</th>
+                                        <th>Gloss</th>
+                                        <th>Grammar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for word in greek_words %}
+                                    <tr>
+                                        <td>{{ word.word_num }}</td>
+                                        <td class="greek">{{ word.word_text }}</td>
+                                        <td>{{ word.transliteration }}</td>
+                                        <td>{{ word.translation }}</td>
+                                        <td>
+                                            {% if word.strongs_id %}
+                                            <a href="/lexicon/greek/{{ word.strongs_id }}">{{ word.strongs_id }}</a>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ word.gloss }}</td>
+                                        <td>{{ word.grammar_code }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if hebrew_words and hebrew_words|length > 0 %}
+                <hr>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h4>Hebrew Text Analysis</h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Hebrew</th>
+                                        <th>Transliteration</th>
+                                        <th>Translation</th>
+                                        <th>Strong's</th>
+                                        <th>Gloss</th>
+                                        <th>Grammar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for word in hebrew_words %}
+                                    <tr>
+                                        <td>{{ word.word_num }}</td>
+                                        <td class="hebrew">{{ word.word_text }}</td>
+                                        <td>{{ word.transliteration }}</td>
+                                        <td>{{ word.translation }}</td>
+                                        <td>
+                                            {% if word.strongs_id %}
+                                            <a href="/lexicon/hebrew/{{ word.strongs_id }}">{{ word.strongs_id }}</a>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ word.gloss }}</td>
+                                        <td>{{ word.grammar_code }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if parallel_verses and parallel_verses|length > 0 %}
+                <hr>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h4>Parallel Verses</h4>
+                        <div class="list-group">
+                            {% for par_verse in parallel_verses %}
+                            <a href="/verse/{{ par_verse.book_name }}/{{ par_verse.chapter_num }}/{{ par_verse.verse_num }}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">{{ par_verse.book_name }} {{ par_verse.chapter_num }}:{{ par_verse.verse_num }}</h5>
+                                    <small>{{ par_verse.translation_source }}</small>
+                                </div>
+                                <p class="mb-1">{{ par_verse.verse_text }}</p>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Add this section after the parallel verses section but before the end of the main content -->
+                {% if proper_names %}
+                <div class="mt-4">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="card-title mb-0">Proper Names in this Verse</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for name in proper_names %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">
+                                                <a href="/names/{{ name.id }}">{{ name.name }}</a>
+                                                <small class="text-muted">{{ name.type }}</small>
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            {% if name.form %}
+                                            <p class="mb-1">
+                                                <small class="text-muted">{{ name.language }} form:</small><br>
+                                                <span dir="{% if name.language == 'Hebrew' %}rtl{% else %}ltr{% endif %}" class="{% if name.language == 'Hebrew' %}hebrew{% else %}greek{% endif %}">
+                                                    {{ name.form }}
+                                                </span>
+                                                {% if name.transliteration %}
+                                                <small class="text-muted d-block">Transliteration: {{ name.transliteration }}</small>
+                                                {% endif %}
+                                            </p>
+                                            {% endif %}
+                                            {% if name.short_description %}
+                                            <p class="mb-0"><small>{{ name.short_description }}</small></p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="card-footer text-center">
+                                            <a href="/names/{{ name.id }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Navigation to previous/next verses -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between">
+                            <a href="/verse/{{ verse.book_name }}/{{ verse.chapter_num }}/{{ verse.verse_num - 1 }}" class="btn btn-outline-primary {% if verse.verse_num <= 1 %}disabled{% endif %}">
+                                &laquo; Previous Verse
+                            </a>
+                            <div>
+                                <a href="{{ url_for('verse_with_resources', book=verse.book_name, chapter=verse.chapter_num, verse=verse.verse_num) }}" class="btn btn-primary">
+                                    <i class="bi bi-book"></i> View External Resources
+                                </a>
+                            </div>
+                            <a href="/verse/{{ verse.book_name }}/{{ verse.chapter_num }}/{{ verse.verse_num + 1 }}" class="btn btn-outline-primary">
+                                Next Verse &raquo;
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

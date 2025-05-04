@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Concordance: {{ strongs_id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-4">
+        <div class="col-12">
+            <h1>Concordance for {{ strongs_id }}</h1>
+            
+            {% if data.lexicon_entry %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2>Lexicon Information</h2>
+                </div>
+                <div class="card-body">
+                    {% if language == "Hebrew" %}
+                    <h3>{{ data.lexicon_entry.hebrew_word }} ({{ data.lexicon_entry.transliteration }})</h3>
+                    {% else %}
+                    <h3>{{ data.lexicon_entry.greek_word }} ({{ data.lexicon_entry.transliteration }})</h3>
+                    {% endif %}
+                    
+                    <p><strong>Part of Speech:</strong> {{ data.lexicon_entry.pos }}</p>
+                    <p><strong>Gloss:</strong> {{ data.lexicon_entry.gloss }}</p>
+                    
+                    {% if data.lexicon_entry.definition %}
+                    <p><strong>Definition:</strong> {{ data.lexicon_entry.definition }}</p>
+                    {% endif %}
+                    
+                    <a href="/lexicon/{{ language.lower() }}/{{ strongs_id }}" class="btn btn-primary">View Full Lexicon Entry</a>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2>Occurrences ({{ data.total }})</h2>
+                    <div>
+                        {% if show_arabic %}
+                        <a href="/concordance/{{ strongs_id }}" class="btn btn-outline-primary btn-sm me-2">Show Original Language</a>
+                        {% else %}
+                        <a href="/concordance/{{ strongs_id }}?arabic=true" class="btn btn-outline-primary btn-sm me-2">Show Arabic</a>
+                        {% endif %}
+                        <a href="/export/concordance/{{ strongs_id }}{% if show_arabic %}?arabic=true{% endif %}" class="btn btn-success btn-sm">Export CSV</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if data.occurrences %}
+                    <div class="list-group">
+                        {% for occurrence in data.occurrences %}
+                        <div class="list-group-item">
+                            <h5 class="mb-1">
+                                <a href="/verse/{{ occurrence.reference.replace(' ', '/') }}">{{ occurrence.reference }}</a>
+                            </h5>
+                            <div class="concordance-verse mb-3">
+                                {% for word in occurrence.context.before %}
+                                <span class="context-word" data-strongs="{{ word.strongs_id }}">{{ word.word_text if show_arabic else word.word_text }}</span>
+                                {% endfor %}
+                                
+                                <span class="target-word fw-bold text-primary" data-strongs="{{ occurrence.target_word.strongs_id }}">
+                                    {{ occurrence.target_word.text }}
+                                </span>
+                                
+                                {% for word in occurrence.context.after %}
+                                <span class="context-word" data-strongs="{{ word.strongs_id }}">{{ word.word_text if show_arabic else word.word_text }}</span>
+                                {% endfor %}
+                            </div>
+                            <div class="text-muted small">{{ occurrence.verse_text }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p>No occurrences found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .concordance-verse {
+        direction: {{ 'rtl' if show_arabic else 'ltr' }};
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .context-word {
+        margin: 0 3px;
+        cursor: pointer;
+    }
+    
+    .target-word {
+        margin: 0 3px;
+        font-weight: bold;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make context words clickable to generate their own concordance
+        document.querySelectorAll('.context-word').forEach(function(word) {
+            word.addEventListener('click', function() {
+                const strongsId = this.getAttribute('data-strongs');
+                if (strongsId) {
+                    window.location.href = '/concordance/' + strongsId + '{% if show_arabic %}?arabic=true{% endif %}';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Parallel View - {{ book }} {{ chapter }}:{{ verse }}{% endblock %}
+
+{% block styles %}
+<style>
+    .arabic-text {
+        font-size: 1.6rem;
+        text-align: right;
+        direction: rtl;
+        line-height: 2.5rem;
+        font-family: "Traditional Arabic", "Scheherazade New", sans-serif;
+    }
+    
+    .greek-text {
+        font-size: 1.6rem;
+        line-height: 2.5rem;
+        font-family: "SBL Greek", "Times New Roman", serif;
+    }
+    
+    .hebrew-text {
+        font-size: 1.6rem;
+        text-align: right;
+        direction: rtl;
+        line-height: 2.5rem;
+        font-family: "SBL Hebrew", "Ezra SIL", serif;
+    }
+    
+    .verse-reference {
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .parallel-card {
+        height: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/arabic">Arabic Bible</a></li>
+                    <li class="breadcrumb-item"><a href="/arabic/search?book={{ book }}">{{ book }}</a></li>
+                    <li class="breadcrumb-item"><a href="/arabic/verse/{{ book }}/{{ chapter }}/{{ verse }}">{{ chapter }}:{{ verse }}</a></li>
+                    <li class="breadcrumb-item active">Parallel View</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <h1 class="mb-4">Parallel View - {{ book }} {{ chapter }}:{{ verse }}</h1>
+    
+    <div class="row g-4">
+        <div class="col-md-{% if parallel.greek and parallel.hebrew %}4{% elif parallel.greek or parallel.hebrew %}6{% else %}12{% endif %}">
+            <div class="card parallel-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Arabic (SVD)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="verse-reference">{{ parallel.arabic.book_name }} {{ parallel.arabic.chapter_num }}:{{ parallel.arabic.verse_num }}</div>
+                    <div class="arabic-text">{{ parallel.arabic.verse_text }}</div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="/arabic/verse/{{ parallel.arabic.book_name }}/{{ parallel.arabic.chapter_num }}/{{ parallel.arabic.verse_num }}" class="btn btn-sm btn-outline-primary">View Tagged Words</a>
+                </div>
+            </div>
+        </div>
+        
+        {% if parallel.greek %}
+        <div class="col-md-{% if parallel.hebrew %}4{% else %}6{% endif %}">
+            <div class="card parallel-card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Greek (TAGNT)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="verse-reference">{{ parallel.greek.book_name }} {{ parallel.greek.chapter_num }}:{{ parallel.greek.verse_num }}</div>
+                    <div class="greek-text">{{ parallel.greek.verse_text }}</div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="/bible/{{ parallel.greek.book_name }}/{{ parallel.greek.chapter_num }}/{{ parallel.greek.verse_num }}" class="btn btn-sm btn-outline-success">View Tagged Greek</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if parallel.hebrew %}
+        <div class="col-md-{% if parallel.greek %}4{% else %}6{% endif %}">
+            <div class="card parallel-card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">Hebrew (TAHOT)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="verse-reference">{{ parallel.hebrew.book_name }} {{ parallel.hebrew.chapter_num }}:{{ parallel.hebrew.verse_num }}</div>
+                    <div class="hebrew-text">{{ parallel.hebrew.verse_text }}</div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="/bible/{{ parallel.hebrew.book_name }}/{{ parallel.hebrew.chapter_num }}/{{ parallel.hebrew.verse_num }}" class="btn btn-sm btn-outline-warning">View Tagged Hebrew</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Navigation</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    {% if verse > 1 %}
+                    <a href="/arabic/parallel/{{ book }}/{{ chapter }}/{{ verse - 1 }}" class="btn btn-outline-primary">Previous Verse</a>
+                    {% elif chapter > 1 %}
+                    <!-- This is an approximation since we don't know the exact verse count of the previous chapter -->
+                    <a href="/arabic/parallel/{{ book }}/{{ chapter - 1 }}/1" class="btn btn-outline-primary">Previous Chapter</a>
+                    {% endif %}
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="btn-group" role="group">
+                        <a href="/arabic/verse/{{ book }}/{{ chapter }}/{{ verse }}" class="btn btn-outline-secondary">Arabic Text</a>
+                        {% if parallel.greek %}
+                        <a href="/bible/{{ parallel.greek.book_name }}/{{ parallel.greek.chapter_num }}/{{ parallel.greek.verse_num }}" class="btn btn-outline-secondary">Greek Text</a>
+                        {% endif %}
+                        {% if parallel.hebrew %}
+                        <a href="/bible/{{ parallel.hebrew.book_name }}/{{ parallel.hebrew.chapter_num }}/{{ parallel.hebrew.verse_num }}" class="btn btn-outline-secondary">Hebrew Text</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <a href="/arabic/parallel/{{ book }}/{{ chapter }}/{{ verse + 1 }}" class="btn btn-outline-primary">Next Verse</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">About Parallel View</h5>
+        </div>
+        <div class="card-body">
+            <p>This view displays the verse in multiple languages side by side:</p>
+            <ul>
+                <li><strong>Arabic (SVD)</strong>: Smith & Van Dyck Bible (1865)</li>
+                {% if parallel.greek %}<li><strong>Greek (TAGNT)</strong>: Translators Amalgamated Greek New Testament</li>{% endif %}
+                {% if parallel.hebrew %}<li><strong>Hebrew (TAHOT)</strong>: Translators Amalgamated Hebrew Old Testament</li>{% endif %}
+            </ul>
+            <p>Use the navigation buttons to move between verses or click "View Tagged Words" to see the detailed analysis of each word.</p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

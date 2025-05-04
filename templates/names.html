@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Bible Proper Names{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Bible Proper Names</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Search Bible Names</h5>
+                </div>
+                <div class="card-body">
+                    <form action="/names/search" method="get" id="nameSearchForm">
+                        <div class="form-group">
+                            <label for="q">Search for a name:</label>
+                            <input type="text" class="form-control" id="q" name="q" value="{{ search_term|default('') }}" placeholder="Enter a name, reference, or Strong's ID">
+                        </div>
+                        <div class="form-group mt-2">
+                            <label for="type">Search by:</label>
+                            <select class="form-control" id="type" name="type">
+                                <option value="name" {% if search_type == 'name' %}selected{% endif %}>Name</option>
+                                <option value="reference" {% if search_type == 'reference' %}selected{% endif %}>Bible Reference</option>
+                                <option value="strongs" {% if search_type == 'strongs' %}selected{% endif %}>Strong's ID</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-expanded="false" aria-controls="advancedFilters">
+                                Advanced Filters <i class="bi bi-chevron-down"></i>
+                            </button>
+                            
+                            <div class="collapse" id="advancedFilters">
+                                <div class="card card-body bg-light">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="name_type">Name Type:</label>
+                                                <select class="form-control" id="name_type" name="name_type">
+                                                    <option value="">All Types</option>
+                                                    {% for name_type in filter_data.types %}
+                                                    <option value="{{ name_type }}" {% if filters and filters.name_type == name_type %}selected{% endif %}>{{ name_type }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="gender">Gender:</label>
+                                                <select class="form-control" id="gender" name="gender">
+                                                    <option value="">All Genders</option>
+                                                    {% for gender in filter_data.genders %}
+                                                    <option value="{{ gender }}" {% if filters and filters.gender == gender %}selected{% endif %}>{{ gender }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group mt-2">
+                                        <label for="book">Book:</label>
+                                        <select class="form-control" id="book" name="book">
+                                            <option value="">All Books</option>
+                                            {% for book, count in filter_data.book_counts.items() %}
+                                            <option value="{{ book }}" {% if filters and filters.book == book %}selected{% endif %}>{{ book }} ({{ count }} names)</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary mt-3">Search</button>
+                    </form>
+                </div>
+            </div>
+            
+            {% if error %}
+            <div class="alert alert-danger mt-3">{{ error }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">About Bible Names</h5>
+                </div>
+                <div class="card-body">
+                    <p>This database contains information about proper names found in the Bible, including:</p>
+                    <ul>
+                        <li>People (kings, prophets, apostles, etc.)</li>
+                        <li>Places (cities, regions, mountains, etc.)</li>
+                        <li>Other named entities</li>
+                    </ul>
+                    <p>Each name entry includes:</p>
+                    <ul>
+                        <li>Original Hebrew or Greek forms</li>
+                        <li>Biblical references where the name appears</li>
+                        <li>Relationships with other named entities</li>
+                        <li>Descriptions and historical information</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if results %}
+    <div class="mt-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    Search Results 
+                    {% if metadata %}
+                        ({{ metadata.total_count }} found, showing {{ results|length }})
+                    {% else %}
+                        ({{ result_count }} found)
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Gender</th>
+                                <th>Description</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for name in results %}
+                            <tr>
+                                <td><a href="/names/{{ name.id }}">{{ name.name }}</a></td>
+                                <td>{{ name.type }}</td>
+                                <td>{{ name.gender if name.gender else 'N/A' }}</td>
+                                <td>{{ name.short_description if name.short_description else '' }}</td>
+                                <td><a href="/names/{{ name.id }}" class="btn btn-sm btn-primary">View</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if metadata and metadata.total_count > metadata.limit %}
+                <div class="mt-3">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% set total_pages = (metadata.total_count / metadata.limit)|round(0, 'ceil')|int %}
+                            {% set current_page = (metadata.offset / metadata.limit)|int + 1 %}
+                            
+                            <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="#" onclick="changePage({{ current_page - 1 }}); return false;">Previous</a>
+                            </li>
+                            
+                            {% for page in range(1, total_pages + 1) %}
+                                {% if page == 1 or page == total_pages or (page >= current_page - 2 and page <= current_page + 2) %}
+                                    <li class="page-item {% if page == current_page %}active{% endif %}">
+                                        <a class="page-link" href="#" onclick="changePage({{ page }}); return false;">{{ page }}</a>
+                                    </li>
+                                {% elif page == current_page - 3 or page == current_page + 3 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+                                <a class="page-link" href="#" onclick="changePage({{ current_page + 1 }}); return false;">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">People Categories</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Key Biblical People:</h6>
+                            <ul>
+                                <li><a href="/names/search?q=Abraham&type=name">Abraham</a></li>
+                                <li><a href="/names/search?q=Moses&type=name">Moses</a></li>
+                                <li><a href="/names/search?q=David&type=name">David</a></li>
+                                <li><a href="/names/search?q=Jesus&type=name">Jesus</a></li>
+                                <li><a href="/names/search?q=Paul&type=name">Paul</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>By Type:</h6>
+                            <ul>
+                                <li><a href="/names/search?name_type=Person&gender=Male">Men</a></li>
+                                <li><a href="/names/search?name_type=Person&gender=Female">Women</a></li>
+                                <li><a href="/names/search?q=prophet&type=name">Prophets</a></li>
+                                <li><a href="/names/search?q=king&type=name">Kings</a></li>
+                                <li><a href="/names/search?q=apostle&type=name">Apostles</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">Places Categories</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Key Locations:</h6>
+                            <ul>
+                                <li><a href="/names/search?q=Jerusalem&type=name">Jerusalem</a></li>
+                                <li><a href="/names/search?q=Bethlehem&type=name">Bethlehem</a></li>
+                                <li><a href="/names/search?q=Jordan&type=name">Jordan</a></li>
+                                <li><a href="/names/search?q=Egypt&type=name">Egypt</a></li>
+                                <li><a href="/names/search?q=Rome&type=name">Rome</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>By Book:</h6>
+                            <ul>
+                                <li><a href="/names/search?name_type=Location&book=Gen">Genesis</a></li>
+                                <li><a href="/names/search?name_type=Location&book=Exo">Exodus</a></li>
+                                <li><a href="/names/search?name_type=Location&book=Mat">Matthew</a></li>
+                                <li><a href="/names/search?name_type=Location&book=Act">Acts</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function changePage(page) {
+        // Get the current form values
+        const form = document.getElementById('nameSearchForm');
+        const formData = new FormData(form);
+        
+        // Calculate the offset
+        const limit = {{ metadata.limit if metadata else 50 }};
+        const offset = (page - 1) * limit;
+        
+        // Create the URL with the new offset
+        let url = '/names/search?';
+        for (let pair of formData.entries()) {
+            if (pair[0] !== 'offset') {
+                url += encodeURIComponent(pair[0]) + '=' + encodeURIComponent(pair[1]) + '&';
+            }
+        }
+        url += 'offset=' + offset;
+        
+        window.location.href = url;
+    }
+</script>
+{% endblock %} 

@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}STEPBible Explorer - Search{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Search STEPBible Data</h1>
+        <p class="lead">Search for lexicon entries, verses, or tagged words</p>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="searchTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="lexicon-tab" data-bs-toggle="tab" data-bs-target="#lexicon" type="button" role="tab" aria-controls="lexicon" aria-selected="true">Lexicon</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="verse-tab" data-bs-toggle="tab" data-bs-target="#verse" type="button" role="tab" aria-controls="verse" aria-selected="false">Verse</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="word-tab" data-bs-toggle="tab" data-bs-target="#word" type="button" role="tab" aria-controls="word" aria-selected="false">Tagged Word</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="searchTabsContent">
+                    <!-- Lexicon Search Tab -->
+                    <div class="tab-pane fade show active" id="lexicon" role="tabpanel" aria-labelledby="lexicon-tab">
+                        <form id="lexiconSearchForm">
+                            <div class="mb-3">
+                                <label for="lexiconQuery" class="form-label">Search Hebrew and Greek Lexicons</label>
+                                <input type="text" class="form-control" id="lexiconQuery" placeholder="Enter a word, Strong's number, or meaning">
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="lexiconLanguage" id="lexiconLangBoth" value="both" checked>
+                                    <label class="form-check-label" for="lexiconLangBoth">Both</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="lexiconLanguage" id="lexiconLangHebrew" value="hebrew">
+                                    <label class="form-check-label" for="lexiconLangHebrew">Hebrew</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="lexiconLanguage" id="lexiconLangGreek" value="greek">
+                                    <label class="form-check-label" for="lexiconLangGreek">Greek</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </form>
+                        <div id="lexiconResults" class="mt-4"></div>
+                    </div>
+                    
+                    <!-- Verse Search Tab -->
+                    <div class="tab-pane fade" id="verse" role="tabpanel" aria-labelledby="verse-tab">
+                        <form id="verseSearchForm">
+                            <div class="mb-3">
+                                <label for="verseQuery" class="form-label">Search Bible Verses</label>
+                                <input type="text" class="form-control" id="verseQuery" placeholder="Enter words or phrases to search for">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </form>
+                        <div id="verseResults" class="mt-4"></div>
+                    </div>
+                    
+                    <!-- Tagged Word Search Tab -->
+                    <div class="tab-pane fade" id="word" role="tabpanel" aria-labelledby="word-tab">
+                        <form id="wordSearchForm">
+                            <div class="mb-3">
+                                <label for="wordQuery" class="form-label">Search Tagged Words</label>
+                                <input type="text" class="form-control" id="wordQuery" placeholder="Enter a word, Strong's number, or translation">
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="wordLanguage" id="wordLangBoth" value="both" checked>
+                                    <label class="form-check-label" for="wordLangBoth">Both</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="wordLanguage" id="wordLangHebrew" value="hebrew">
+                                    <label class="form-check-label" for="wordLangHebrew">Hebrew</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="wordLanguage" id="wordLangGreek" value="greek">
+                                    <label class="form-check-label" for="wordLangGreek">Greek</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </form>
+                        <div id="wordResults" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('lexiconSearchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = document.getElementById('lexiconQuery').value;
+        const lang = document.querySelector('input[name="lexiconLanguage"]:checked').value;
+        if (!query) return;
+        
+        fetch(`/api/search?q=${encodeURIComponent(query)}&type=lexicon&lang=${lang}`)
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('lexiconResults');
+                resultsDiv.innerHTML = '';
+                
+                if (data.lexicon) {
+                    // Hebrew results
+                    if (data.lexicon.hebrew && data.lexicon.hebrew.length > 0) {
+                        const hebrewSection = document.createElement('div');
+                        hebrewSection.innerHTML = `<h3>Hebrew Results (${data.lexicon.hebrew.length})</h3>`;
+                        
+                        const list = document.createElement('div');
+                        list.className = 'list-group';
+                        
+                        data.lexicon.hebrew.forEach(entry => {
+                            const item = document.createElement('a');
+                            item.className = 'list-group-item list-group-item-action';
+                            item.href = `/lexicon/hebrew/${entry.strongs_id}`;
+                            item.innerHTML = `
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">${entry.strongs_id} <span class="hebrew">${entry.hebrew_word || ''}</span> (${entry.transliteration || ''})</h5>
+                                </div>
+                                <p class="mb-1">${entry.gloss || ''}</p>
+                            `;
+                            list.appendChild(item);
+                        });
+                        
+                        hebrewSection.appendChild(list);
+                        resultsDiv.appendChild(hebrewSection);
+                    }
+                    
+                    // Greek results
+                    if (data.lexicon.greek && data.lexicon.greek.length > 0) {
+                        const greekSection = document.createElement('div');
+                        greekSection.className = 'mt-4';
+                        greekSection.innerHTML = `<h3>Greek Results (${data.lexicon.greek.length})</h3>`;
+                        
+                        const list = document.createElement('div');
+                        list.className = 'list-group';
+                        
+                        data.lexicon.greek.forEach(entry => {
+                            const item = document.createElement('a');
+                            item.className = 'list-group-item list-group-item-action';
+                            item.href = `/lexicon/greek/${entry.strongs_id}`;
+                            item.innerHTML = `
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">${entry.strongs_id} <span class="greek">${entry.greek_word || ''}</span> (${entry.transliteration || ''})</h5>
+                                </div>
+                                <p class="mb-1">${entry.gloss || ''}</p>
+                            `;
+                            list.appendChild(item);
+                        });
+                        
+                        greekSection.appendChild(list);
+                        resultsDiv.appendChild(greekSection);
+                    }
+                    
+                    // No results
+                    if ((!data.lexicon.hebrew || data.lexicon.hebrew.length === 0) && 
+                        (!data.lexicon.greek || data.lexicon.greek.length === 0)) {
+                        resultsDiv.innerHTML = '<div class="alert alert-info">No results found</div>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('lexiconResults').innerHTML = 
+                    '<div class="alert alert-danger">An error occurred while searching</div>';
+            });
+    });
+    
+    document.getElementById('verseSearchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = document.getElementById('verseQuery').value;
+        if (!query) return;
+        
+        fetch(`/api/search?q=${encodeURIComponent(query)}&type=verse`)
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('verseResults');
+                resultsDiv.innerHTML = '';
+                
+                if (data.verses && data.verses.length > 0) {
+                    const list = document.createElement('div');
+                    list.className = 'list-group';
+                    
+                    data.verses.forEach(verse => {
+                        const item = document.createElement('a');
+                        item.className = 'list-group-item list-group-item-action';
+                        item.href = `/verse/${verse.book_name}/${verse.chapter_num}/${verse.verse_num}`;
+                        item.innerHTML = `
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">${verse.book_name} ${verse.chapter_num}:${verse.verse_num}</h5>
+                                <small>${verse.translation_source || ''}</small>
+                            </div>
+                            <p class="mb-1">${verse.verse_text || ''}</p>
+                        `;
+                        list.appendChild(item);
+                    });
+                    
+                    resultsDiv.appendChild(list);
+                } else {
+                    resultsDiv.innerHTML = '<div class="alert alert-info">No results found</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('verseResults').innerHTML = 
+                    '<div class="alert alert-danger">An error occurred while searching</div>';
+            });
+    });
+    
+    document.getElementById('wordSearchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = document.getElementById('wordQuery').value;
+        const lang = document.querySelector('input[name="wordLanguage"]:checked').value;
+        if (!query) return;
+        
+        fetch(`/api/search?q=${encodeURIComponent(query)}&type=word&lang=${lang}`)
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('wordResults');
+                resultsDiv.innerHTML = '';
+                
+                if (data.greek_words && data.greek_words.length > 0) {
+                    const wordSection = document.createElement('div');
+                    wordSection.innerHTML = `<h3>Greek Word Occurrences (${data.greek_words.length})</h3>`;
+                    
+                    const list = document.createElement('div');
+                    list.className = 'list-group';
+                    
+                    data.greek_words.forEach(word => {
+                        const item = document.createElement('a');
+                        item.className = 'list-group-item list-group-item-action';
+                        item.href = `/verse/${word.book_name}/${word.chapter_num}/${word.verse_num}`;
+                        item.innerHTML = `
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">${word.book_name} ${word.chapter_num}:${word.verse_num}</h5>
+                                <small>${word.strongs_id || ''}</small>
+                            </div>
+                            <p class="mb-1">
+                                <span class="greek">${word.word_text || ''}</span> 
+                                (${word.transliteration || ''}) - ${word.translation || ''}</p>
+                            <small>${word.gloss || ''}</small>
+                        `;
+                        list.appendChild(item);
+                    });
+                    
+                    wordSection.appendChild(list);
+                    resultsDiv.appendChild(wordSection);
+                } else {
+                    resultsDiv.innerHTML = '<div class="alert alert-info">No results found</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('wordResults').innerHTML = 
+                    '<div class="alert alert-danger">An error occurred while searching</div>';
+            });
+    });
+</script>
+{% endblock %} 

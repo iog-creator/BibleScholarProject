@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entry.strongs_id }} - STEPBible Explorer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/search">Search</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ entry.strongs_id }}</li>
+            </ol>
+        </nav>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2>
+                    {% if lang == 'hebrew' %}
+                    <span class="hebrew">{{ entry.hebrew_word }}</span>
+                    {% else %}
+                    <span class="greek">{{ entry.greek_word }}</span>
+                    {% endif %}
+                    <small class="text-muted">({{ entry.transliteration }})</small>
+                </h2>
+                <h3>{{ entry.strongs_id }} - {{ entry.gloss }}</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Dictionary Information</h4>
+                        <dl class="row">
+                            <dt class="col-sm-3">Strong's ID</dt>
+                            <dd class="col-sm-9">{{ entry.strongs_id }}</dd>
+                            
+                            {% if entry.extended_strongs %}
+                            <dt class="col-sm-3">Extended Strong's</dt>
+                            <dd class="col-sm-9">{{ entry.extended_strongs }}</dd>
+                            {% endif %}
+                            
+                            <dt class="col-sm-3">Original Word</dt>
+                            <dd class="col-sm-9">
+                                {% if lang == 'hebrew' %}
+                                <span class="hebrew">{{ entry.hebrew_word }}</span>
+                                {% else %}
+                                <span class="greek">{{ entry.greek_word }}</span>
+                                {% endif %}
+                            </dd>
+                            
+                            <dt class="col-sm-3">Transliteration</dt>
+                            <dd class="col-sm-9">{{ entry.transliteration }}</dd>
+                            
+                            <dt class="col-sm-3">Part of Speech</dt>
+                            <dd class="col-sm-9">{{ entry.pos }}</dd>
+                            
+                            <dt class="col-sm-3">Gloss</dt>
+                            <dd class="col-sm-9">{{ entry.gloss }}</dd>
+                        </dl>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h4>Definition</h4>
+                        <div class="definition">{{ entry.definition }}</div>
+                    </div>
+                </div>
+                
+                {% if related_words and related_words|length > 0 %}
+                <hr>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h4>Related Words</h4>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Strong's ID</th>
+                                    <th>Word</th>
+                                    <th>Transliteration</th>
+                                    <th>Gloss</th>
+                                    <th>Relationship</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for word in related_words %}
+                                <tr>
+                                    <td><a href="/lexicon/{{ word.language }}/{{ word.target_id }}">{{ word.target_id }}</a></td>
+                                    <td>
+                                        {% if word.language == 'hebrew' %}
+                                        <span class="hebrew">{{ word.word }}</span>
+                                        {% else %}
+                                        <span class="greek">{{ word.word }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ word.transliteration }}</td>
+                                    <td>{{ word.gloss }}</td>
+                                    <td>{{ word.relationship_type }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if occurrences and occurrences|length > 0 %}
+                <hr>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h4>Sample Occurrences in Bible Text</h4>
+                        <div class="list-group">
+                            {% for verse in occurrences %}
+                            <a href="/verse/{{ verse.book_name }}/{{ verse.chapter_num }}/{{ verse.verse_num }}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">{{ verse.book_name }} {{ verse.chapter_num }}:{{ verse.verse_num }}</h5>
+                                </div>
+                                <p class="mb-1">{{ verse.verse_text }}</p>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

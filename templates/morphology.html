@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+
+{% block title %}Morphology Codes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Bible Morphology Codes</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Search Morphology Codes</h5>
+                </div>
+                <div class="card-body">
+                    <form action="/search" method="get">
+                        <input type="hidden" name="type" value="morphology">
+                        <div class="form-group">
+                            <label for="q">Search for a morphology code:</label>
+                            <input type="text" class="form-control" id="q" name="q" placeholder="Enter code or description">
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-2">Search</button>
+                    </form>
+                </div>
+            </div>
+            
+            {% if error %}
+            <div class="alert alert-danger mt-3">{{ error }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">About Morphology Codes</h5>
+                </div>
+                <div class="card-body">
+                    <p>Morphology codes provide grammatical information about words in the Biblical text. They include details like:</p>
+                    <ul>
+                        <li>Part of speech (noun, verb, adjective, etc.)</li>
+                        <li>Tense, voice, and mood for verbs</li>
+                        <li>Case, number, and gender for nouns</li>
+                        <li>Other grammatical features</li>
+                    </ul>
+                    <p>The STEPBible system uses standardized codes for both Hebrew and Greek texts.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Hebrew Morphology</h5>
+                </div>
+                <div class="card-body">
+                    <p>Hebrew morphology codes describe the grammatical features of words in the Hebrew Bible (Old Testament).</p>
+                    <h6>Common Hebrew Codes:</h6>
+                    <ul>
+                        <li><a href="/morphology/hebrew/A">A - Adjective</a></li>
+                        <li><a href="/morphology/hebrew/C">C - Conjunction</a></li>
+                        <li><a href="/morphology/hebrew/D">D - Adverb</a></li>
+                        <li><a href="/morphology/hebrew/N">N - Noun</a></li>
+                        <li><a href="/morphology/hebrew/P">P - Pronoun</a></li>
+                        <li><a href="/morphology/hebrew/R">R - Preposition</a></li>
+                        <li><a href="/morphology/hebrew/T">T - Particle</a></li>
+                        <li><a href="/morphology/hebrew/V">V - Verb</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">Greek Morphology</h5>
+                </div>
+                <div class="card-body">
+                    <p>Greek morphology codes describe the grammatical features of words in the Greek New Testament.</p>
+                    <h6>Common Greek Codes:</h6>
+                    <ul>
+                        <li><a href="/morphology/greek/A">A - Adjective</a></li>
+                        <li><a href="/morphology/greek/C">C - Conjunction</a></li>
+                        <li><a href="/morphology/greek/D">D - Adverb</a></li>
+                        <li><a href="/morphology/greek/N">N - Noun</a></li>
+                        <li><a href="/morphology/greek/P">P - Pronoun</a></li>
+                        <li><a href="/morphology/greek/R">R - Preposition</a></li>
+                        <li><a href="/morphology/greek/T">T - Particle</a></li>
+                        <li><a href="/morphology/greek/V">V - Verb</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

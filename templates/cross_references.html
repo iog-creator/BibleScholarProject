@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Cross-References: {{ verse_reference }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-4">
+        <div class="col-12">
+            <h1>Cross-References</h1>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2>{{ verse_reference }}</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">{{ verse_text }}</p>
+                    <a href="/verse/{{ verse_reference.replace(' ', '/') }}" class="btn btn-primary">View Verse Details</a>
+                </div>
+            </div>
+            
+            {% if cross_references %}
+            <div class="card">
+                <div class="card-header">
+                    <h3>Related Passages</h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="shared_content">Shared Content</button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="parallel_passage">Parallel Passages</button>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group">
+                        {% for xref in cross_references %}
+                        <div class="list-group-item xref-item" data-type="{{ xref.type }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-1">
+                                    <a href="/verse/{{ xref.reference.replace(' ', '/') }}">{{ xref.reference }}</a>
+                                    
+                                    {% if xref.type == 'shared_content' %}
+                                    <span class="badge bg-info">{{ xref.shared_words }} shared words</span>
+                                    {% elif xref.type == 'parallel_passage' %}
+                                    <span class="badge bg-success">Parallel passage</span>
+                                    {% endif %}
+                                </h5>
+                            </div>
+                            <p class="mb-1">{{ xref.text }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No cross-references found for this verse.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle filter buttons
+        const filterButtons = document.querySelectorAll('[data-filter]');
+        const xrefItems = document.querySelectorAll('.xref-item');
+        
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.getAttribute('data-filter');
+                
+                // Apply filter
+                xrefItems.forEach(item => {
+                    if (filter === 'all' || item.getAttribute('data-type') === filter) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %} 

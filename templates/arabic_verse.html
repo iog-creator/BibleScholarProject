@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ verse.book_name }} {{ verse.chapter_num }}:{{ verse.verse_num }} - Arabic Bible{% endblock %}
+
+{% block styles %}
+<style>
+    .arabic-text {
+        font-size: 1.8rem;
+        text-align: right;
+        direction: rtl;
+        line-height: 2.5rem;
+        font-family: "Traditional Arabic", "Scheherazade New", sans-serif;
+    }
+    
+    .word-container {
+        display: inline-block;
+        cursor: pointer;
+        margin: 0 2px;
+        padding: 2px;
+        border-radius: 3px;
+    }
+    
+    .word-container:hover {
+        background-color: #e9f7fe;
+    }
+    
+    .word-info {
+        text-align: left;
+        direction: ltr;
+        font-size: 1rem;
+    }
+    
+    .word-popup {
+        max-width: 400px;
+    }
+    
+    .word-lexicon {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+    }
+    
+    .lexicon-lemma {
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/arabic">Arabic Bible</a></li>
+                    <li class="breadcrumb-item"><a href="/arabic/search?book={{ verse.book_name }}">{{ verse.book_name }}</a></li>
+                    <li class="breadcrumb-item active">{{ verse.chapter_num }}:{{ verse.verse_num }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">{{ verse.book_name }} {{ verse.chapter_num }}:{{ verse.verse_num }}</h4>
+            <div>
+                <a href="/arabic/parallel/{{ verse.book_name }}/{{ verse.chapter_num }}/{{ verse.verse_num }}" class="btn btn-sm btn-outline-primary">View Parallel</a>
+                {% if verse.chapter_num > 1 or verse.verse_num > 1 %}
+                <a href="/arabic/verse/{{ verse.book_name }}/{{ verse.chapter_num }}/{{ verse.verse_num - 1 if verse.verse_num > 1 else verse.chapter_num - 1 }}/{{ '1' if verse.verse_num == 1 else verse.verse_num - 1 }}" class="btn btn-sm btn-outline-secondary">Previous Verse</a>
+                {% endif %}
+                <a href="/arabic/verse/{{ verse.book_name }}/{{ verse.chapter_num if verse.verse_num < 200 else verse.chapter_num + 1 }}/{{ verse.verse_num + 1 if verse.verse_num < 200 else 1 }}" class="btn btn-sm btn-outline-secondary">Next Verse</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="arabic-text mb-4">
+                {% for word in verse.words|sort(attribute='word_position') %}
+                    <span class="word-container" 
+                          data-bs-toggle="popover" 
+                          data-bs-trigger="hover" 
+                          data-bs-html="true" 
+                          data-bs-content="
+                            <div class='word-popup'>
+                                <div><strong>Arabic:</strong> {{ word.arabic_word }}</div>
+                                {% if word.strongs_id %}
+                                <div><strong>Strong's:</strong> {{ word.strongs_id }}</div>
+                                {% endif %}
+                                {% if word.transliteration %}
+                                <div><strong>Transliteration:</strong> {{ word.transliteration }}</div>
+                                {% endif %}
+                                {% if word.gloss %}
+                                <div><strong>Gloss:</strong> {{ word.gloss }}</div>
+                                {% endif %}
+                                {% if word.lexicon %}
+                                <div class='word-lexicon'>
+                                    <div class='lexicon-lemma'>{{ word.lexicon.lemma }}</div>
+                                    <div><em>{{ word.lexicon.transliteration }}</em></div>
+                                    <div>{{ word.lexicon.short_definition }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                          ">
+                        {{ word.arabic_word }}
+                    </span>
+                {% endfor %}
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Word Analysis</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Arabic Word</th>
+                                    <th>Transliteration</th>
+                                    <th>Strong's</th>
+                                    <th>Greek/Hebrew</th>
+                                    <th>Gloss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for word in verse.words|sort(attribute='word_position') %}
+                                <tr>
+                                    <td>{{ word.word_position }}</td>
+                                    <td dir="rtl">{{ word.arabic_word }}</td>
+                                    <td>{{ word.transliteration or '' }}</td>
+                                    <td>
+                                        {% if word.strongs_id %}
+                                            {% if word.strongs_id.startswith('G') %}
+                                            <a href="/lexicon/greek/{{ word.strongs_id }}">{{ word.strongs_id }}</a>
+                                            {% elif word.strongs_id.startswith('H') %}
+                                            <a href="/lexicon/hebrew/{{ word.strongs_id }}">{{ word.strongs_id }}</a>
+                                            {% else %}
+                                            {{ word.strongs_id }}
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ word.greek_word or '' }}</td>
+                                    <td>{{ word.gloss or '' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl, {
+                placement: 'top'
+            })
+        })
+    });
+</script>
+{% endblock %} 

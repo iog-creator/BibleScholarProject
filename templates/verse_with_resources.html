@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book }} {{ chapter }}:{{ verse_num }} with Resources | STEPBible Explorer{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Bible Verse Panel - Left Side -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2>{{ book }} {{ chapter }}:{{ verse_num }}</h2>
+                    <div class="btn-group">
+                        <a href="{{ url_for('verse_detail', book=book, chapter=chapter, verse=verse_num) }}" class="btn btn-outline-secondary btn-sm">Standard View</a>
+                        <a href="{{ url_for('cross_references', book=book, chapter=chapter, verse=verse_num) }}" class="btn btn-outline-secondary btn-sm">Cross References</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="verse-text mb-4">
+                        {% if verse.tagged_words %}
+                            {% for word in verse.tagged_words %}
+                                <span class="tagged-word" 
+                                      data-strongs="{{ word.strongs_id|default('') }}"
+                                      data-lemma="{{ word.lemma|default('') }}"
+                                      data-morph="{{ word.morphology|default('') }}">
+                                    {{ word.text }}
+                                </span>
+                            {% endfor %}
+                        {% else %}
+                            {{ verse.text }}
+                        {% endif %}
+                    </div>
+                    
+                    {% if verse.hebrew_text or verse.greek_text %}
+                    <div class="original-text mt-3">
+                        {% if verse.hebrew_text %}
+                            <div class="hebrew-text text-end">{{ verse.hebrew_text }}</div>
+                        {% endif %}
+                        {% if verse.greek_text %}
+                            <div class="greek-text">{{ verse.greek_text }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <h5>Translations</h5>
+                    <div class="accordion" id="translationsAccordion">
+                        {% for translation in translations.translations %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ translation.translation }}">
+                                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#collapse{{ translation.translation }}" 
+                                            aria-expanded="{% if loop.first %}true{% else %}false{% endif %}" 
+                                            aria-controls="collapse{{ translation.translation }}">
+                                        {{ translation.translation }}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ translation.translation }}" 
+                                     class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
+                                     aria-labelledby="heading{{ translation.translation }}" 
+                                     data-bs-parent="#translationsAccordion">
+                                    <div class="accordion-body">
+                                        {{ translation.text }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- External Resources Panel - Right Side -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="commentaries-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#commentaries" type="button" role="tab" 
+                                    aria-controls="commentaries" aria-selected="true">Commentaries</button>
+                        </li>
+                        {% if manuscript_data %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="manuscripts-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#manuscripts" type="button" role="tab" 
+                                    aria-controls="manuscripts" aria-selected="false">Manuscripts</button>
+                        </li>
+                        {% endif %}
+                        {% if archaeological_data %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="archaeological-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#archaeological" type="button" role="tab" 
+                                    aria-controls="archaeological" aria-selected="false">Archaeological</button>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="citations-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#citations" type="button" role="tab" 
+                                    aria-controls="citations" aria-selected="false">Citations</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Commentaries Tab -->
+                        <div class="tab-pane fade show active" id="commentaries" role="tabpanel" aria-labelledby="commentaries-tab">
+                            {% if commentaries.commentaries %}
+                                {% for commentary in commentaries.commentaries %}
+                                    <div class="commentary mb-4">
+                                        <h4>{{ commentary.title }}</h4>
+                                        <p class="text-muted">Source: {{ commentary.source }}</p>
+                                        <div class="commentary-content">
+                                            {{ commentary.content }}
+                                        </div>
+                                        {% if commentary.url %}
+                                            <a href="{{ commentary.url }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                                View Full Commentary
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                    {% if not loop.last %}<hr>{% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-info">
+                                    No commentaries are available for this verse.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Manuscripts Tab -->
+                        {% if manuscript_data %}
+                        <div class="tab-pane fade" id="manuscripts" role="tabpanel" aria-labelledby="manuscripts-tab">
+                            <h3>Manuscript Evidence</h3>
+                            <div class="manuscripts-info">
+                                {% for manuscript in manuscript_data.manuscripts %}
+                                    <div class="manuscript-entry mb-4">
+                                        <h4>{{ manuscript.name }}</h4>
+                                        <p><strong>Date:</strong> {{ manuscript.date }}</p>
+                                        <p><strong>Content:</strong> {{ manuscript.content }}</p>
+                                        
+                                        {% if manuscript.variants %}
+                                            <div class="variants mt-3">
+                                                <h5>Textual Variants</h5>
+                                                <ul class="list-group">
+                                                    {% for variant in manuscript.variants %}
+                                                        <li class="list-group-item">{{ variant }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    {% if not loop.last %}<hr>{% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Archaeological Tab -->
+                        {% if archaeological_data %}
+                        <div class="tab-pane fade" id="archaeological" role="tabpanel" aria-labelledby="archaeological-tab">
+                            <h3>Archaeological Information</h3>
+                            <div class="archaeological-info">
+                                <h4>{{ archaeological_data.location }}</h4>
+                                
+                                {% if archaeological_data.time_periods %}
+                                    <div class="time-periods mb-3">
+                                        <h5>Time Periods</h5>
+                                        <ul class="list-group">
+                                            {% for period in archaeological_data.time_periods %}
+                                                <li class="list-group-item">{{ period }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if archaeological_data.artifacts %}
+                                    <div class="artifacts mb-3">
+                                        <h5>Artifacts</h5>
+                                        <ul class="list-group">
+                                            {% for artifact in archaeological_data.artifacts %}
+                                                <li class="list-group-item">{{ artifact }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if archaeological_data.excavations %}
+                                    <div class="excavations mb-3">
+                                        <h5>Excavations</h5>
+                                        <div class="list-group">
+                                            {% for excavation in archaeological_data.excavations %}
+                                                <div class="list-group-item">
+                                                    <h6>{{ excavation.year }}</h6>
+                                                    <p><strong>Director:</strong> {{ excavation.director }}</p>
+                                                    <p>{{ excavation.findings }}</p>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if archaeological_data.biblical_references %}
+                                    <div class="biblical-references mb-3">
+                                        <h5>Biblical References</h5>
+                                        <ul class="list-group">
+                                            {% for ref in archaeological_data.biblical_references %}
+                                                <li class="list-group-item">
+                                                    <strong>{{ ref.reference }}</strong>: {{ ref.description }}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Citations Tab -->
+                        <div class="tab-pane fade" id="citations" role="tabpanel" aria-labelledby="citations-tab">
+                            <h3>Academic Citations</h3>
+                            <div class="citations-container" id="citations-content">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load citations on demand when the tab is clicked
+document.getElementById('citations-tab').addEventListener('click', function() {
+    fetch('{{ citation_url }}')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('citations-content');
+            let html = '';
+            
+            if (data && data.citations) {
+                for (const [style, citation] of Object.entries(data.citations)) {
+                    html += `
+                        <div class="citation-entry mb-3">
+                            <h5>${style.toUpperCase()}</h5>
+                            <div class="p-2 bg-light rounded">
+                                <code>${citation}</code>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary mt-1 copy-btn" 
+                                    data-clipboard-text="${citation}">
+                                Copy
+                            </button>
+                        </div>
+                    `;
+                }
+            } else {
+                html = '<div class="alert alert-warning">No citation formats available.</div>';
+            }
+            
+            container.innerHTML = html;
+            
+            // Initialize clipboard functionality
+            const copyButtons = container.querySelectorAll('.copy-btn');
+            copyButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const text = this.getAttribute('data-clipboard-text');
+                    navigator.clipboard.writeText(text).then(() => {
+                        const originalText = this.textContent;
+                        this.textContent = 'Copied!';
+                        this.classList.add('btn-success');
+                        this.classList.remove('btn-outline-secondary');
+                        
+                        setTimeout(() => {
+                            this.textContent = originalText;
+                            this.classList.remove('btn-success');
+                            this.classList.add('btn-outline-secondary');
+                        }, 2000);
+                    });
+                });
+            });
+        })
+        .catch(error => {
+            document.getElementById('citations-content').innerHTML = 
+                `<div class="alert alert-danger">Error loading citations: ${error.message}</div>`;
+        });
+});
+</script>
+{% endblock %} 

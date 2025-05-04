@@ -1,0 +1,101 @@
+{% extends "layout.html" %}
+
+{% block title %}Morphology Code Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/morphology">Morphology</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ morphology.code }}</li>
+        </ol>
+    </nav>
+    
+    <div class="card">
+        <div class="card-header {% if language == 'hebrew' %}bg-success{% else %}bg-info{% endif %} text-white">
+            <h2 class="card-title">Morphology Code: {{ morphology.code }}</h2>
+            <h6 class="card-subtitle">{{ language|capitalize }} {{ morphology.code_type|capitalize }} Code</h6>
+        </div>
+        
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h4>Description</h4>
+                    <p class="lead">{{ morphology.description }}</p>
+                    
+                    {% if morphology.explanation %}
+                    <h4>Explanation</h4>
+                    <p>{{ morphology.explanation }}</p>
+                    {% endif %}
+                    
+                    {% if morphology.example %}
+                    <h4>Example</h4>
+                    <p><em>{{ morphology.example }}</em></p>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header {% if language == 'hebrew' %}bg-success{% else %}bg-info{% endif %} text-white">
+                            <h5 class="card-title mb-0">Code Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th>Code</th>
+                                        <td>{{ morphology.code }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Type</th>
+                                        <td>{{ morphology.code_type|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Language</th>
+                                        <td>{{ language|capitalize }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if examples %}
+            <div class="mt-4">
+                <h4>Words with this Morphology Code</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Word</th>
+                                <th>Strong's</th>
+                                <th>Translation</th>
+                                <th>Reference</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for example in examples %}
+                            <tr>
+                                <td dir="{% if language == 'hebrew' %}rtl{% else %}ltr{% endif %}">{{ example.word_text }}</td>
+                                <td>{% if example.strongs_id %}<a href="/lexicon/{{ language }}/{{ example.strongs_id }}">{{ example.strongs_id }}</a>{% endif %}</td>
+                                <td>{{ example.translation }}</td>
+                                <td><a href="/bible/{{ example.book_name }}/{{ example.chapter_num }}/{{ example.verse_num }}">
+                                    {{ example.book_name }} {{ example.chapter_num }}:{{ example.verse_num }}
+                                </a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="/morphology" class="btn btn-secondary">Back to Morphology Codes</a>
+    </div>
+</div>
+{% endblock %} 

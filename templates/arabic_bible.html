@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Arabic Bible Explorer{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Arabic Bible Explorer</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Arabic Bible Statistics</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card text-center mb-3">
+                        <div class="card-body">
+                            <h2 class="card-title">{{ stats.total_verses }}</h2>
+                            <p class="card-text">Total Verses</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card text-center mb-3">
+                        <div class="card-body">
+                            <h2 class="card-title">{{ stats.total_words }}</h2>
+                            <p class="card-text">Total Words</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Available Books</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">Old Testament</h5>
+                    <ul class="list-group">
+                        {% for book in stats.books %}
+                            {% if book.book_name in ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel', '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs', 'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos', 'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi'] %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="/arabic/search?book={{ book.book_name }}">{{ book.book_name }}</a>
+                                    <span class="badge bg-primary rounded-pill">{{ book.verse_count }}</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="mb-3">New Testament</h5>
+                    <ul class="list-group">
+                        {% for book in stats.books %}
+                            {% if book.book_name in ['Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians', 'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians', '1 Timothy', '2 Timothy', 'Titus', 'Philemon', 'Hebrews', 'James', '1 Peter', '2 Peter', '1 John', '2 John', '3 John', 'Jude', 'Revelation'] %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="/arabic/search?book={{ book.book_name }}">{{ book.book_name }}</a>
+                                    <span class="badge bg-primary rounded-pill">{{ book.verse_count }}</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Search Arabic Bible</h5>
+        </div>
+        <div class="card-body">
+            <form action="/arabic/search" method="get" class="mb-3">
+                <div class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <label for="searchQuery" class="col-form-label">Search:</label>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" id="searchQuery" name="q" class="form-control" placeholder="Enter search terms...">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </div>
+            </form>
+            
+            <h6>Common Examples:</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <ul class="list-unstyled">
+                        <li><a href="/arabic/search?q=يسوع">Search for "يسوع" (Jesus)</a></li>
+                        <li><a href="/arabic/search?q=محبة">Search for "محبة" (love)</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <ul class="list-unstyled">
+                        <li><a href="/arabic/search?q=إيمان">Search for "إيمان" (faith)</a></li>
+                        <li><a href="/arabic/search?q=خلاص">Search for "خلاص" (salvation)</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <ul class="list-unstyled">
+                        <li><a href="/arabic/verse/John/3/16">John 3:16</a></li>
+                        <li><a href="/arabic/verse/Genesis/1/1">Genesis 1:1</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">About the Arabic Bible (SVD)</h5>
+        </div>
+        <div class="card-body">
+            <p>The Arabic SVD Bible (Smith & Van Dyck) was translated from the original languages by Drs. Eli Smith & Cornelius Van Dyck in 1865.</p>
+            <p>This implementation includes:</p>
+            <ul>
+                <li>Complete Old and New Testament text</li>
+                <li>Word-by-word tagging with Strong's numbers</li>
+                <li>Links to Greek/Hebrew resources for deeper study</li>
+                <li>Parallel viewing with original language texts</li>
+            </ul>
+            <p>Data digitization, formatting, and diacritics by "Arabic Bible Outreach Ministry" <a href="https://www.arabicbible.com/" target="_blank">https://www.arabicbible.com/</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

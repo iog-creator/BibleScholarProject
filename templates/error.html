@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Error - STEPBible Explorer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-danger">
+            <h4 class="alert-heading">Error!</h4>
+            <p>{{ error }}</p>
+        </div>
+        
+        <div class="mt-4">
+            <a href="/" class="btn btn-primary">Back to Home</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 
