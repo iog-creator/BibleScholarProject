@@ -8,6 +8,11 @@ from sqlalchemy import text
 from tvtms.parser import TVTMSParser
 from tvtms.database import store_mappings, store_rules, store_documentation
 
+pytestmark = pytest.mark.skipif(
+    not os.getenv('DATABASE_URL'),
+    reason='DATABASE_URL not set; skipping DB-dependent integration tests (see Cursor rule db_test_skip.mdc)'
+)
+
 def test_full_etl_pipeline(test_db_engine, temp_dir, parser):
     """Test full ETL pipeline."""
     content = """2) EXPANDED VERSION

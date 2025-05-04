@@ -2,10 +2,16 @@
 Integration tests for pandas functionality in TVTMS processing.
 """
 
+import os
 import pytest
 import pandas as pd
 import numpy as np
 from tvtms.parser import TVTMSParser
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv('DATABASE_URL'),
+    reason='DATABASE_URL not set; skipping DB-dependent integration tests (see Cursor rule db_test_skip.mdc)'
+)
 
 def test_pandas_dataframe_creation(parser, sample_tvtms_file):
     """Test creation of pandas DataFrame from TVTMS file."""

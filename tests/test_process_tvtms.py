@@ -15,9 +15,15 @@ from sqlalchemy.exc import SQLAlchemyError
 from tvtms.database import get_db_connection, store_mappings, store_rules, store_documentation
 from tvtms.models import Mapping, Rule, Documentation
 import sys
+import pytest
 
 # Patch store_mappings, store_rules, and store_documentation to no-ops for integration tests
 import src.tvtms.database as db_mod
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv('DATABASE_URL'),
+    reason='DATABASE_URL not set; skipping DB-dependent integration tests (see Cursor rule db_test_skip.mdc)'
+)
 
 def noop_store_mappings(conn, mappings):
     pass

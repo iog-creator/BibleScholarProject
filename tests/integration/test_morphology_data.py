@@ -11,6 +11,11 @@ from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import os
 
+pytestmark = pytest.mark.skipif(
+    not os.getenv('DATABASE_URL'),
+    reason='DATABASE_URL not set; skipping DB-dependent integration tests (see Cursor rule db_test_skip.mdc)'
+)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

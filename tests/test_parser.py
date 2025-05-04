@@ -7,6 +7,11 @@ import pytest
 from tvtms.parser import TVTMSParser
 from tvtms.models import Mapping, Rule, Documentation
 
+pytestmark = pytest.mark.skipif(
+    not os.getenv('DATABASE_URL'),
+    reason='DATABASE_URL not set; skipping DB-dependent parser tests (see Cursor rule db_test_skip.mdc)'
+)
+
 def test_parse_file():
     """Test parsing the TVTMS file."""
     parser = TVTMSParser()
