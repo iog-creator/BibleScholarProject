@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Hebrew Critical Terms Validation</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Term</th>
+            <th>Hebrew</th>
+            <th>Strong's ID</th>
+            <th>Count</th>
+            <th>Valid</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for result in results %}
+        <tr>
+            <td>{{ result.term }}</td>
+            <td class="hebrew-text">{{ result.hebrew }}</td>
+            <td>{{ result.strongs_id }}</td>
+            <td>{{ result.count }}</td>
+            <td>{{ '✅' if result.valid else '❌' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %} 

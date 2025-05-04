@@ -913,4 +913,17 @@ This document tracks the progress of the STEPBible Explorer project. Below is a 
 - Add support for user accounts and saved searches
 - Develop advanced visualization tools for word relationships
 - Create a public API for third-party applications
-- Implement additional language support 
+- Implement additional language support
+
+# Latest Improvements
+
+- Added health check endpoints to both API server and web app for improved reliability
+- Fixed cross-language term mapping API integration by correcting SQL queries for Arabic words
+- Created comprehensive integration test script to validate all new features
+- Added Makefile targets for integration testing and running both services simultaneously
+- Improved error handling in cross-language term mappings
+
+# Previously Completed
+
+- Fixed Strong's ID mappings for Elohim (H430), Adon (H113), Chesed (H2617) with API/web validation.
+- Added cross-language term mappings with API and web interface. 

@@ -205,6 +205,25 @@ def update_hebrew_strongs_ids(conn):
         for row in cursor.fetchall():
             logger.info(f"  {row[0]}: {row[1]} occurrences")
         
+        # Validate critical terms after updating strongs_id
+        critical_terms = {
+            "H430": {"name": "Elohim", "hebrew": "אלהים", "expected_min": 2600},
+            "H113": {"name": "Adon", "hebrew": "אדון", "expected_min": 335},
+            "H2617": {"name": "Chesed", "hebrew": "חסד", "expected_min": 248}
+        }
+        for strongs_id, info in critical_terms.items():
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM bible.hebrew_ot_words 
+                WHERE strongs_id = %s AND word_text = %s
+                """, (strongs_id, info["hebrew"])
+            )
+            count = cursor.fetchone()[0]
+            if count < info["expected_min"]:
+                logger.warning(f"Low count for {info['name']} ({strongs_id}): {count} < {info['expected_min']}")
+            else:
+                logger.info(f"Validated {info['name']} ({strongs_id}): {count} occurrences")
+        
         # Commit the transaction
         conn.commit()
         logger.info("Successfully updated Hebrew Strong's IDs")

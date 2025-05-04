@@ -5,14 +5,19 @@ Web application for STEPBible lexicons and tagged Bible texts.
 
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
 import requests
+import pandas as pd
+from datetime import datetime
 
 # Import the external resources blueprint
 from api.external_resources_api import external_resources_bp
+
+# Import the cross-language API blueprint
+from src.api.cross_language_api import api_blueprint as cross_language_api
 
 # Load environment variables
 load_dotenv()
@@ -34,6 +39,9 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key')
 
 # Register the external resources blueprint
 app.register_blueprint(external_resources_bp)
+
+# Register the cross-language API blueprint
+app.register_blueprint(cross_language_api, url_prefix='/api/cross_language')
 
 # API Base URL - use local host if running on same server
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:5000')
@@ -1013,6 +1021,50 @@ def verse_with_resources(book, chapter, verse):
     except Exception as e:
         logger.error(f"Error retrieving verse with resources: {e}")
         return render_template('error.html', message=f"Error: {e}")
+
+@app.route('/hebrew_terms_validation')
+def hebrew_terms_validation():
+    try:
+        response = requests.get(f"{API_BASE_URL}/api/lexicon/hebrew/validate_critical_terms")
+        if response.status_code != 200:
+            logger.error(f"Failed to fetch critical terms: {response.status_code}")
+            return render_template('error.html', message="Failed to retrieve term validation data")
+        results = response.json()
+        return render_template('hebrew_terms_validation.html', results=results)
+    except Exception as e:
+        logger.error(f"Error rendering term validation: {e}")
+        return render_template('error.html', message=str(e))
+
+@app.route('/cross_language')
+def cross_language():
+    try:
+        response = requests.get(f"{API_BASE_URL}/api/cross_language/terms")
+        if response.status_code != 200:
+            logger.error(f"Failed to fetch cross-language terms: {response.status_code}")
+            return render_template('error.html', message="Failed to retrieve cross-language terms")
+        results = response.json()
+        return render_template('cross_language.html', results=results)
+    except Exception as e:
+        logger.error(f"Error rendering cross-language page: {e}")
+        return render_template('error.html', message=str(e))
+
+@app.route('/theological_terms_report')
+def theological_terms_report():
+    try:
+        response = requests.get(f"{API_BASE_URL}/api/theological_terms_report")
+        if response.status_code != 200:
+            logger.error(f"Failed to fetch theological terms report: {response.status_code}")
+            return render_template('error.html', message="Failed to retrieve theological terms report")
+        results = response.json()
+        return render_template('theological_terms_report.html', results=results)
+    except Exception as e:
+        logger.error(f"Error rendering theological terms report: {e}")
+        return render_template('error.html', message=str(e))
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for API connection verification."""
+    return jsonify({"status": "OK"}), 200
 
 # Create templates directory if it doesn't exist
 os.makedirs('templates', exist_ok=True)

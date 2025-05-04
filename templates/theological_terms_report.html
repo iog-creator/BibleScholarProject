@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Theological Terms Frequency Report</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Term</th>
+            <th>Root</th>
+            <th>Strong's ID</th>
+            <th>Language</th>
+            <th>Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for result in results %}
+        <tr>
+            <td>{{ result.term }}</td>
+            <td class="{% if result.language == 'hebrew' %}hebrew-text{% elif result.language == 'greek' %}greek-text{% endif %}">{{ result.root }}</td>
+            <td>{{ result.strongs_id }}</td>
+            <td>{{ result.language|capitalize }}</td>
+            <td>{{ result.count }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Term Frequency Chart</h2>
+<canvas id="theologicalChart" width="800" height="400"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const data = {
+        labels: [{% for result in results %}'{{ result.term }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [
+            {
+                label: 'Hebrew',
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+                data: [{% for result in results if result.language == 'hebrew' %}{{ result.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            },
+            {
+                label: 'Greek',
+                backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1,
+                data: [{% for result in results if result.language == 'greek' %}{{ result.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+            }
+        ]
+    };
+    // Split data for Hebrew and Greek
+    const hebrewCounts = [{% for result in results if result.language == 'hebrew' %}{{ result.count }}{% if not loop.last %}, {% endif %}{% endfor %}];
+    const greekCounts = [{% for result in results if result.language == 'greek' %}{{ result.count }}{% if not loop.last %}, {% endif %}{% endfor %}];
+    const labels = [{% for result in results %}'{{ result.term }}'{% if not loop.last %}, {% endif %}{% endfor %}];
+    const datasets = [
+        {
+            label: 'Hebrew',
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            data: hebrewCounts.concat(Array({{ results|length - hebrewCounts|length }}).fill(null)),
+        },
+        {
+            label: 'Greek',
+            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1,
+            data: Array({{ hebrewCounts|length }}).fill(null).concat(greekCounts),
+        }
+    ];
+    const ctx = document.getElementById('theologicalChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: 'Theological Term Frequencies (Hebrew & Greek)' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+</script>
+{% endblock %} 

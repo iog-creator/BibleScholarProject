@@ -29,6 +29,10 @@ logger = logging.getLogger('lexicon_api')
 # Initialize Flask app
 app = Flask(__name__)
 
+# Register cross-language API blueprint
+from src.api.cross_language_api import api_blueprint as cross_language_api
+app.register_blueprint(cross_language_api, url_prefix='/api/cross_language')
+
 # Database connection
 def get_db_connection():
     """
@@ -2062,6 +2066,110 @@ def semantic_search():
     finally:
         if conn:
             conn.close()
+
+@app.route('/api/lexicon/hebrew/validate_critical_terms', methods=['GET'])
+def validate_critical_terms():
+    critical_terms = {
+        "H430": {"name": "Elohim", "hebrew": "אלהים", "expected_min": 2600},
+        "H113": {"name": "Adon", "hebrew": "אדון", "expected_min": 335},
+        "H2617": {"name": "Chesed", "hebrew": "חסד", "expected_min": 248}
+    }
+    results = []
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            for strongs_id, info in critical_terms.items():
+                cur.execute(
+                    """
+                    SELECT COUNT(*) as count 
+                    FROM bible.hebrew_ot_words 
+                    WHERE strongs_id = %s AND word_text = %s
+                    """, (strongs_id, info["hebrew"])
+                )
+                count = cur.fetchone()['count']
+                results.append({
+                    "term": info["name"],
+                    "hebrew": info["hebrew"],
+                    "strongs_id": strongs_id,
+                    "count": count,
+                    "valid": count >= info["expected_min"]
+                })
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error validating critical terms: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/theological_terms_report', methods=['GET'])
+def theological_terms_report():
+    # List of key theological terms (Strong's ID, root, language)
+    terms = [
+        # Hebrew
+        {"strongs_id": "H430", "root": "אלהים", "term": "Elohim", "language": "hebrew"},
+        {"strongs_id": "H3068", "root": "יהוה", "term": "YHWH", "language": "hebrew"},
+        {"strongs_id": "H113", "root": "אדון", "term": "Adon", "language": "hebrew"},
+        {"strongs_id": "H4899", "root": "משיח", "term": "Mashiach", "language": "hebrew"},
+        {"strongs_id": "H6944", "root": "קדש", "term": "Qodesh", "language": "hebrew"},
+        {"strongs_id": "H8451", "root": "תורה", "term": "Torah", "language": "hebrew"},
+        {"strongs_id": "H2617", "root": "חסד", "term": "Chesed", "language": "hebrew"},
+        {"strongs_id": "H6664", "root": "צדק", "term": "Tsedeq", "language": "hebrew"},
+        {"strongs_id": "H5315", "root": "נפש", "term": "Nephesh", "language": "hebrew"},
+        {"strongs_id": "H7965", "root": "שלום", "term": "Shalom", "language": "hebrew"},
+        # Greek
+        {"strongs_id": "G2316", "root": "θεος", "term": "Theos", "language": "greek"},
+        {"strongs_id": "G2962", "root": "κυριος", "term": "Kyrios", "language": "greek"},
+        {"strongs_id": "G5547", "root": "χριστος", "term": "Christos", "language": "greek"},
+        {"strongs_id": "G4151", "root": "πνευμα", "term": "Pneuma", "language": "greek"},
+        {"strongs_id": "G40",   "root": "αγιος", "term": "Hagios", "language": "greek"},
+        {"strongs_id": "G26",   "root": "αγαπη", "term": "Agape", "language": "greek"},
+        {"strongs_id": "G4102", "root": "πιστις", "term": "Pistis", "language": "greek"},
+        {"strongs_id": "G1680", "root": "ελπις", "term": "Elpis", "language": "greek"},
+        {"strongs_id": "G5485", "root": "χαρις", "term": "Charis", "language": "greek"},
+        {"strongs_id": "G1515", "root": "ειρηνη", "term": "Eirene", "language": "greek"},
+    ]
+    results = []
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            for t in terms:
+                if t["language"] == "hebrew":
+                    cur.execute(
+                        """
+                        SELECT COUNT(*) as count FROM bible.hebrew_ot_words
+                        WHERE strongs_id = %s OR grammar_code LIKE %s
+                        """,
+                        (t["strongs_id"], f"%{{{t['strongs_id']}}}%")
+                    )
+                else:
+                    cur.execute(
+                        """
+                        SELECT COUNT(*) as count FROM bible.greek_nt_words
+                        WHERE strongs_id = %s
+                        """,
+                        (t["strongs_id"],)
+                    )
+                count = cur.fetchone()["count"]
+                results.append({
+                    "term": t["term"],
+                    "strongs_id": t["strongs_id"],
+                    "root": t["root"],
+                    "language": t["language"],
+                    "count": count
+                })
+        return jsonify(results)
+    except Exception as e:
+        logger.error(f"Error generating theological terms report: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint."""
+    return jsonify({"status": "OK"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True) 

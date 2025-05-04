@@ -16,6 +16,10 @@ BibleScholarProject is a standalone application for accessing and analyzing bibl
 - **Web Interface**: User-friendly interface for exploring the biblical data.
 - **External Resources Integration**: Connect with biblical commentaries and academic resources.
 
+## Features
+- Validates critical Hebrew terms (e.g., Elohim/H430, Chesed/H2617) via `/hebrew_terms_validation`.
+- Cross-language term mappings (e.g., YHWH-Theos-Allah) via `/cross_language`.
+
 ## Getting Started
 
 ### Prerequisites
@@ -125,8 +129,31 @@ This project is licensed under the MIT License. The STEPBible data is licensed u
 
 - `docs/STEPBible_Explorer_System_Build_Guide.md`: Comprehensive guide for setting up and using the system
 - `IMPORT_STRUCTURE.md`: Documentation on the import structure
-<<<<<<< HEAD
 - `FINAL_INTEGRATION_SUMMARY.md`: Summary of the integration process 
-=======
-- `FINAL_INTEGRATION_SUMMARY.md`: Summary of the integration process 
->>>>>>> 7ce9bae97b2e6d0fe65169a363af093a8e5043a4
+
+## Running the New Features
+
+To run and test the new theological terms and cross-language mapping features:
+
+```bash
+# Start both the API server and web app
+make run-all
+
+# In a new terminal, run the integration tests
+make test-integration
+
+# Or, do everything in one step:
+make run-tests
+```
+
+### New API Endpoints
+
+- `/api/theological_terms_report`: Returns counts for key theological terms in Hebrew and Greek
+- `/api/lexicon/hebrew/validate_critical_terms`: Validates critical Hebrew terms like Elohim (H430)
+- `/api/cross_language/terms`: Returns cross-language term mappings (Hebrew/Greek/Arabic)
+
+### New Web Routes
+
+- `/theological_terms_report`: Displays frequency chart for theological terms
+- `/hebrew_terms_validation`: Shows validation results for critical Hebrew terms
+- `/cross_language`: Displays cross-language mappings table with counts 

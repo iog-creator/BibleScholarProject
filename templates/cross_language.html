@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Cross-Language Term Mappings</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Hebrew</th>
+            <th>Greek</th>
+            <th>Arabic</th>
+            <th>Strong's</th>
+            <th>Counts (Hebrew/Greek/Arabic)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for result in results %}
+        <tr>
+            <td class="hebrew-text">{{ result.hebrew }}</td>
+            <td class="greek-text">{{ result.greek }}</td>
+            <td class="arabic-text">{{ result.arabic }}</td>
+            <td>{{ result.strongs }}</td>
+            <td>{{ result.counts.hebrew }}/{{ result.counts.greek }}/{{ result.counts.arabic }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %} 
