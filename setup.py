@@ -1,30 +1,31 @@
-<<<<<<< HEAD
+#!/usr/bin/env python3
+"""
+Setup script for the BibleScholarProject package.
+"""
+
 from setuptools import setup, find_packages
 
 setup(
-    name="tvtms",
-    version="0.1.0",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
-    install_requires=[
-        "pandas>=2.2.0",
-        "psycopg[binary]>=3.2.0",
-        "python-dotenv>=1.0.0",
-    ],
+    name="BibleScholarProject",
+    version="1.2.0",
+    packages=find_packages(),
+    include_package_data=True,
     python_requires=">=3.8",
-=======
-from setuptools import setup, find_packages
-
-setup(
-    name="tvtms",
-    version="0.1.0",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
     install_requires=[
-        "pandas>=2.2.0",
-        "psycopg[binary]>=3.2.0",
-        "python-dotenv>=1.0.0",
+        "Flask>=2.0.0",
+        "psycopg2-binary>=2.9.0",
+        "python-dotenv>=0.19.0",
+        "requests>=2.26.0",
+        "matplotlib>=3.4.0",
+        "pandas>=1.3.0",
+        "pytest>=6.2.5",
     ],
-    python_requires=">=3.8",
->>>>>>> 7ce9bae97b2e6d0fe65169a363af093a8e5043a4
+    entry_points={
+        "console_scripts": [
+            "fix-hebrew-strongs=src.etl.fix_hebrew_strongs_ids:main",
+            "init-bible-db=scripts.init_database:main",
+            "check-db-schema=check_db_schema:main",
+            "verify-data=verify_data_processing:main",
+        ],
+    },
 ) 

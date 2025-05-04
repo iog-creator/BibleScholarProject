@@ -85,11 +85,14 @@ def _store_documentation(engine, docs):
         return
     data_to_insert = [
         (
-            d.section,
-            d.content
+            d.section_title,
+            d.content,
+            d.category,
+            d.related_sections,
+            d.notes
         ) for d in docs
     ]
-    columns = ("section_title", "content")
+    columns = ("section_title", "content", "category", "related_sections", "notes")
     placeholders = ", ".join([":{}".format(col) for col in columns])
     sql = f"""
         INSERT INTO versification_documentation ({', '.join(columns)})
@@ -182,8 +185,11 @@ def test_store_documentation(test_db_engine):
         conn.execute(text("DELETE FROM versification_documentation"))
 
     doc = Documentation(
-        section=None,
-        content="Test note"
+        section_title=None,
+        content="Test note",
+        category="notes",
+        related_sections=None,
+        notes=None
     )
     
     _store_documentation(test_db_engine, [doc])
@@ -192,8 +198,9 @@ def test_store_documentation(test_db_engine):
     with test_db_engine.connect() as conn:
         result = conn.execute(text("SELECT * FROM versification_documentation")).fetchone()
         assert result is not None
-        assert result.section is None
+        assert result.section_title is None
         assert result.content == "Test note"
+        assert result.category == "notes"
 
 def test_store_empty_lists(test_db_engine):
     """Test storing empty lists doesn't cause errors."""

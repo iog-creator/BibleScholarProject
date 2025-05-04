@@ -11,6 +11,7 @@ import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
 import re
+from src.utils.file_utils import append_dspy_training_example
 
 # Load environment variables
 load_dotenv()

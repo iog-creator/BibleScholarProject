@@ -50,6 +50,30 @@ class Mapping:
             'ancient_versions': self.ancient_versions
         }
 
+    def is_valid(self) -> bool:
+        """Validate the mapping object."""
+        # Required fields
+        if not self.source_tradition or not self.target_tradition:
+            raise ValueError("Required field: source_tradition or target_tradition is missing")
+        if not self.source_book or not self.target_book:
+            raise ValueError("Required field: source_book or target_book is missing")
+        if self.source_chapter is None or self.target_chapter is None:
+            raise ValueError("Required field: source_chapter or target_chapter is missing")
+        if self.source_verse is None or self.target_verse is None:
+            raise ValueError("Required field: source_verse or target_verse is missing")
+        # Valid mapping_type
+        valid_types = {'standard', 'renumbering', 'merge', 'split', 'omit', 'insert'}
+        if self.mapping_type not in valid_types:
+            raise ValueError(f"Invalid mapping_type: {self.mapping_type}")
+        # Valid category (allow None)
+        valid_categories = {'Opt', 'Nec', 'Acd', 'Inf', 'None'}
+        if self.category is not None and self.category not in valid_categories:
+            raise ValueError(f"Invalid category: {self.category}")
+        # Numeric checks
+        if isinstance(self.source_chapter, int) and self.source_chapter <= 0:
+            raise ValueError("Invalid source_chapter: must be > 0")
+        return True
+
 @dataclass
 class Rule:
     """Represents a versification rule."""
@@ -63,25 +87,29 @@ class Rule:
     def is_valid(self) -> bool:
         """Validate the rule object."""
         if not self.rule_type or not self.pattern:
-            return False
-
+            raise ValueError("Required field: rule_type or pattern is missing")
         if not self.source_tradition or not self.target_tradition:
-            return False
-
+            raise ValueError("Required field: source_tradition or target_tradition is missing")
         valid_types = {'conditional', 'procedural', 'structural', 'semantic'}
         if self.rule_type.lower() not in valid_types:
-            return False
-
+            raise ValueError(f"Invalid rule_type: {self.rule_type}")
         return True
 
 @dataclass
 class Documentation:
     """Represents versification documentation."""
-    section: Optional[str]
+    section_title: Optional[str]
     content: str
+    category: Optional[str] = None
+    related_sections: Optional[str] = None
+    notes: Optional[str] = None
 
     def is_valid(self) -> bool:
         """Validate the documentation object."""
         if not self.content:
-            return False
+            raise ValueError("Required field: content is missing")
+        if self.category is not None:
+            valid_categories = {'overview', 'methodology', 'examples', 'notes'}
+            if self.category not in valid_categories:
+                raise ValueError(f"Invalid category: {self.category}")
         return True 

@@ -14,6 +14,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, Blueprint
 from dotenv import load_dotenv
+from src.utils.file_utils import append_dspy_training_example
 
 # Load environment variables
 load_dotenv()
@@ -144,6 +145,10 @@ def get_commentaries(book, chapter, verse):
     
     # Save to cache and return
     save_to_cache(cache_key, results)
+    context = f"{request.path} | {request.args.to_dict()}"
+    labels = results
+    metadata = None
+    append_dspy_training_example('data/processed/dspy_training_data/external_resources_api.jsonl', context, labels, metadata)
     return jsonify(results)
 
 @external_resources_bp.route('/api/external/archaeological/<location>', methods=['GET'])
@@ -178,6 +183,10 @@ def get_archaeological_data(location):
     
     # Save to cache and return
     save_to_cache(cache_key, results)
+    context = f"{request.path} | {request.args.to_dict()}"
+    labels = results
+    metadata = None
+    append_dspy_training_example('data/processed/dspy_training_data/external_resources_api.jsonl', context, labels, metadata)
     return jsonify(results)
 
 @external_resources_bp.route('/api/external/translations/<reference>', methods=['GET'])
@@ -222,6 +231,10 @@ def get_translations(reference):
     
     # Save to cache and return
     save_to_cache(cache_key, results)
+    context = f"{request.path} | {request.args.to_dict()}"
+    labels = results
+    metadata = None
+    append_dspy_training_example('data/processed/dspy_training_data/external_resources_api.jsonl', context, labels, metadata)
     return jsonify(results)
 
 @external_resources_bp.route('/api/external/manuscripts/<reference>', methods=['GET'])
@@ -257,6 +270,10 @@ def get_manuscript_data(reference):
     
     # Save to cache and return
     save_to_cache(cache_key, results)
+    context = f"{request.path} | {request.args.to_dict()}"
+    labels = results
+    metadata = None
+    append_dspy_training_example('data/processed/dspy_training_data/external_resources_api.jsonl', context, labels, metadata)
     return jsonify(results)
 
 @external_resources_bp.route('/api/external/lexicons/<strongs_id>', methods=['GET'])
@@ -291,6 +308,10 @@ def get_external_lexicon(strongs_id):
     
     # Save to cache and return
     save_to_cache(cache_key, results)
+    context = f"{request.path} | {request.args.to_dict()}"
+    labels = results
+    metadata = None
+    append_dspy_training_example('data/processed/dspy_training_data/external_resources_api.jsonl', context, labels, metadata)
     return jsonify(results)
 
 @external_resources_bp.route('/api/external/citations/<reference>', methods=['GET'])
@@ -317,6 +338,14 @@ def get_citation_formats(reference):
         "timestamp": datetime.now().isoformat()
     }
     
+    training_example = {
+        'input': {
+            'endpoint': request.path,
+            'params': request.args.to_dict(),
+        },
+        'output': results  # or relevant fields
+    }
+    append_dspy_training_example('data/processed/dspy_training_data/external_resources_api.jsonl', context, labels, metadata)
     return jsonify(results)
 
 @external_resources_bp.route('/api/external/cache/clear', methods=['POST'])

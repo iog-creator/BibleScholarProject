@@ -14,6 +14,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from src.utils.db_utils import get_db_connection
+from src.utils.file_utils import append_dspy_training_example
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -60,6 +61,11 @@ def get_hebrew_morphology_codes():
             "offset": offset
         }
         
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/morphology_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:
@@ -101,6 +107,11 @@ def get_hebrew_morphology_code(code):
             "code": code_data,
             "examples": examples
         }
+        
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/morphology_api.jsonl', context, labels, metadata)
         
         return jsonify(response)
         
@@ -147,6 +158,11 @@ def get_greek_morphology_codes():
             "offset": offset
         }
         
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/morphology_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:
@@ -188,6 +204,11 @@ def get_greek_morphology_code(code):
             "code": code_data,
             "examples": examples
         }
+        
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/morphology_api.jsonl', context, labels, metadata)
         
         return jsonify(response)
         
@@ -238,6 +259,11 @@ def search_morphology_codes():
             "greek_results": greek_codes,
             "total_results": len(hebrew_codes) + len(greek_codes)
         }
+        
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/morphology_api.jsonl', context, labels, metadata)
         
         return jsonify(response)
         
@@ -295,6 +321,11 @@ def get_morphology_stats():
                 "greek": common_greek_codes
             }
         }
+        
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/morphology_api.jsonl', context, labels, metadata)
         
         return jsonify(response)
         

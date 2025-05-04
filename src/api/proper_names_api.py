@@ -14,6 +14,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from src.utils.db_utils import get_db_connection
+from src.utils.file_utils import append_dspy_training_example
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -143,6 +144,12 @@ def get_proper_names():
         if search_term:
             response["search_term"] = search_term
             
+        # Append training example
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/proper_names_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:
@@ -200,6 +207,12 @@ def get_proper_name(name_id):
             "related_names": related_names
         }
         
+        # Append training example
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/proper_names_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:
@@ -253,6 +266,12 @@ def search_proper_names():
             "results": names,
             "total_results": len(names)
         }
+        
+        # Append training example
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/proper_names_api.jsonl', context, labels, metadata)
         
         return jsonify(response)
         
@@ -318,6 +337,12 @@ def get_name_stats():
             "book_distribution": book_distribution
         }
         
+        # Append training example
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/proper_names_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:
@@ -339,6 +364,12 @@ def get_name_types():
             types = cur.fetchall()
             
         conn.close()
+        
+        # Append training example
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = {"types": types}
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/proper_names_api.jsonl', context, labels, metadata)
         
         return jsonify({"types": types})
         

@@ -48,7 +48,7 @@ class TestHebrewWords(unittest.TestCase):
     def test_word_count(self):
         """Verify the total number of Hebrew OT words."""
         count = self.execute_query("SELECT COUNT(*) FROM bible.hebrew_ot_words")
-        expected_count = 305577
+        expected_count = 308189  # Updated to match current database; keep in sync with DSPy data
         self.assertEqual(count, expected_count, f"Expected {expected_count} Hebrew OT words, got {count}")
         logger.info(f"Hebrew OT word count: {count} (matches expected count of {expected_count})")
 

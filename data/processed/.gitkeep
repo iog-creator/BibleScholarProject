@@ -1,2 +1,7 @@
 # This file is used to keep the empty directory in version control
 # Processed data files will be stored in this directory 
+
+DSPy training data will be stored in the new 'dspy_training_data/' subdirectory within 'data/processed/'.
+
+# To create the directory, run:
+# mkdir -p data/processed/dspy_training_data 

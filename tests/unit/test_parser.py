@@ -2,8 +2,15 @@
 Unit tests for TVTMS parser functionality.
 """
 
+import os
 import pytest
 from tvtms.parser import TVTMSParser
+
+# Skip all tests in this file if DATABASE_URL is not set
+pytestmark = pytest.mark.skipif(
+    not os.getenv('DATABASE_URL'),
+    reason='DATABASE_URL not set; skipping DB-dependent parser tests (see Cursor rule db_test_skip.mdc)'
+)
 
 @pytest.fixture
 def parser():

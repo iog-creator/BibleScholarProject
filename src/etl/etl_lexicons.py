@@ -12,6 +12,7 @@ import argparse
 import psycopg2
 from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
+from src.utils.file_utils import append_dspy_training_example
 
 # Setup logging
 logging.basicConfig(
@@ -124,6 +125,17 @@ def parse_hebrew_lexicon(file_path):
                     if len(entries) % 1000 == 0:
                         logger.info(f"Processed {len(entries)} Hebrew entries")
                         
+                    # Append training example
+                    context = line.strip()
+                    labels = {
+                        'lemma': hebrew_word,
+                        'strongs_id': strongs_id,
+                        'gloss': gloss,
+                        'definition': definition,
+                    }
+                    metadata = {'entry_type': 'hebrew'}
+                    append_dspy_training_example('data/processed/dspy_training_data/lexicon_lookup.jsonl', context, labels, metadata)
+                    
                 except Exception as e:
                     logger.error(f"Error parsing line {line_num}: {e}\nLine: {line.strip()}")
                     continue
@@ -212,6 +224,17 @@ def parse_greek_lexicon(file_path):
                     if len(entries) % 1000 == 0:
                         logger.info(f"Processed {len(entries)} Greek entries")
                         
+                    # Append training example
+                    context = line.strip()
+                    labels = {
+                        'lemma': greek_word,
+                        'strongs_id': strongs_id,
+                        'gloss': gloss,
+                        'definition': definition,
+                    }
+                    metadata = {'entry_type': 'greek'}
+                    append_dspy_training_example('data/processed/dspy_training_data/lexicon_lookup.jsonl', context, labels, metadata)
+                    
                 except Exception as e:
                     logger.error(f"Error parsing line {line_num}: {e}\nLine: {line.strip()}")
                     continue

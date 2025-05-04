@@ -6,6 +6,7 @@ This module contains utility functions for file operations.
 import os
 import logging
 import codecs
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -54,4 +55,23 @@ def get_file_basename(file_path):
     Returns:
         str: Base filename without extension
     """
-    return os.path.splitext(os.path.basename(file_path))[0] 
+    return os.path.splitext(os.path.basename(file_path))[0]
+
+def append_dspy_training_example(file_path, context, labels, metadata=None, input_field='context', output_field='labels'):
+    """
+    Append a DSPy training example to a .jsonl file in DSPy-compatible format.
+    Args:
+        file_path (str): Path to the training data file
+        context (str): The input context (e.g., verse text, query)
+        labels (dict or str): The output/label (e.g., answer, tags)
+        metadata (dict, optional): Any extra metadata to include
+        input_field (str): Name of the input field (default 'context')
+        output_field (str): Name of the output field (default 'labels')
+    """
+    directory = os.path.dirname(file_path)
+    ensure_directory_exists(directory)
+    example = {input_field: context, output_field: labels}
+    if metadata:
+        example['metadata'] = metadata
+    with open_file_with_encoding(file_path, mode='a', encoding='utf-8') as f:
+        f.write(json.dumps(example, ensure_ascii=False) + '\n') 

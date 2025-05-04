@@ -25,6 +25,7 @@ import psycopg2
 from psycopg2 import sql
 from dotenv import load_dotenv
 from psycopg2.extras import execute_values
+from src.utils.file_utils import append_dspy_training_example
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

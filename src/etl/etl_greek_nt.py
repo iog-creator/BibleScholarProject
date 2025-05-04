@@ -16,6 +16,7 @@ import psycopg2
 from psycopg2 import sql
 from dotenv import load_dotenv
 from psycopg2.extras import execute_values
+from src.utils.file_utils import append_dspy_training_example
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -472,6 +473,16 @@ def load_greek_nt_data(db_conn, data):
             if word_count % 1000 == 0:
                 db_conn.commit()
                 logger.info(f"Processed {word_count} of {len(unique_words)} words...")
+            
+            # Append training example
+            context = f"{word['book_name']} {word['chapter_num']}:{word['verse_num']} {word['word_text']}"
+            labels = {
+                'strongs_id': word['strongs_id'],
+                'lemma': word['word_text'],
+                'morphology': word['grammar_code'],
+            }
+            metadata = {'verse_ref': word['book_name'] + '.' + str(word['chapter_num']) + '.' + str(word['verse_num']), 'word_num': word['word_num']}
+            append_dspy_training_example('data/processed/dspy_training_data/greek_nt_tagging.jsonl', context, labels, metadata)
         
         # Final commit
         db_conn.commit()

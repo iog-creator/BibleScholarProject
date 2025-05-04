@@ -64,6 +64,8 @@ except ImportError:
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         from src.database.connection import get_db_connection, check_table_exists
 
+from src.utils.file_utils import append_dspy_training_example
+
 def force_update_critical_terms(conn):
     """
     Force update Strong's IDs for critical theological terms regardless of existing assignments.
@@ -470,6 +472,13 @@ def main():
                 
             logger.info("Hebrew Strong's ID update completed successfully")
             logger.info(f"Summary: {general_stats}")
+            
+            # In the main processing loop, after fixing each word's strongs_id:
+            # context = f"{word_text} | {grammar_code}"
+            # labels = {'extracted_strongs_id': strongs_id, 'fixed': was_fixed}
+            # metadata = {'word_id': word_id, 'verse_ref': verse_ref}
+            # append_dspy_training_example('data/processed/dspy_training_data/hebrew_strongs_fix_training_data.jsonl', context, labels, metadata)
+            
             return 0
         finally:
             # Clean up

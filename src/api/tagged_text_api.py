@@ -15,6 +15,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from src.utils.db_utils import get_db_connection
+from src.utils.file_utils import append_dspy_training_example
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -81,6 +82,11 @@ def get_stats():
         if has_arabic:
             response["words"]["arabic"] = arabic_word_count["count"]
             
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/tagged_text_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:
@@ -175,6 +181,11 @@ def get_verse():
         if arabic_words:
             response["arabic_words"] = arabic_words
             
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/tagged_text_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:
@@ -280,6 +291,11 @@ def search_by_strongs():
         if lexicon_entry:
             response["lexicon_entry"] = lexicon_entry
             
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/tagged_text_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:
@@ -431,6 +447,11 @@ def generate_concordance():
         if lexicon_entry:
             response["lexicon_entry"] = lexicon_entry
             
+        context = f"{request.path} | {request.args.to_dict()}"
+        labels = response
+        metadata = None
+        append_dspy_training_example('data/processed/dspy_training_data/tagged_text_api.jsonl', context, labels, metadata)
+        
         return jsonify(response)
         
     except Exception as e:

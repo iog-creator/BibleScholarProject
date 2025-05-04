@@ -33,10 +33,12 @@ def test_db_engine():
                 target_verse INTEGER NOT NULL,
                 target_subverse TEXT,
                 mapping_type TEXT NOT NULL,
-                category TEXT NOT NULL,
-                notes TEXT NOT NULL DEFAULT '',
+                category TEXT,
                 source_range_note TEXT,
-                target_range_note TEXT
+                target_range_note TEXT,
+                notes TEXT,
+                note_marker TEXT,
+                ancient_versions TEXT
             )
         """))
 
@@ -44,10 +46,10 @@ def test_db_engine():
             CREATE TABLE IF NOT EXISTS versification_rules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 rule_type TEXT NOT NULL,
-                content TEXT NOT NULL,
-                section_title TEXT,
-                applies_to TEXT,  -- JSON array as text
-                notes TEXT NOT NULL DEFAULT ''
+                source_tradition TEXT NOT NULL,
+                target_tradition TEXT NOT NULL,
+                pattern TEXT NOT NULL,
+                description TEXT
             )
         """))
 
@@ -57,8 +59,8 @@ def test_db_engine():
                 section_title TEXT,
                 content TEXT NOT NULL,
                 category TEXT NOT NULL,
-                applies_to TEXT,  -- JSON array as text
-                meta_data TEXT    -- JSON object as text
+                related_sections TEXT,
+                notes TEXT
             )
         """))
 
