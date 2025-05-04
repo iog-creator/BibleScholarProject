@@ -1,6 +1,10 @@
 ﻿---
-description: Standards for Hebrew theological term handling and Strong's ID mapping
-globs: src/etl/fix_hebrew_strongs_ids.py, scripts/update_critical_terms.py, scripts/insert_critical_terms.py
+name: Theological Terms Standards
+description: Standards for Hebrew theological term handling and Strong's ID mapping in the BibleScholarProject
+globs:
+  - src/etl/fix_hebrew_strongs_ids.py
+  - scripts/update_critical_terms.py
+  - scripts/insert_critical_terms.py
 alwaysApply: true
 ---
 # Theological Terms Standardization Guidelines
