@@ -838,7 +838,23 @@ Our tests use several methods to validate the data:
   - Extended format: `{H1234a}`
   - Prefix format: `H9001/{H1234}`
   - Alternate format: `{H1234}\H1234`
+- **Critical Theological Terms**: The system specifically ensures that critical theological terms have the correct Strong's ID mappings:
+  - Elohim (אלהים, H430): Minimum 2,600 occurrences required
+  - YHWH (יהוה, H3068): Minimum 6,000 occurrences required
+  - Adon (אדון, H113): Minimum 335 occurrences required
+  - Chesed (חסד, H2617): Minimum 248 occurrences required
+  - Aman (אמן, H539): Minimum 100 occurrences required
+- **Theological Term Rules**: Project rules are defined in `.cursor/rules/theological_terms.mdc` and `.cursor/rules/hebrew_rules.mdc` to establish standards for:
+  - Core Hebrew theological term identification
+  - Strong's ID format standards
+  - Data processing requirements
+  - Code patterns for Strong's ID handling
+  - Documentation requirements for theological terms
 - **Coverage**: After processing, over 99.99% of Hebrew words have valid Strong's IDs, with only about 0.23% having invalid references due to special codes or unusual patterns.
+- **Validation and Updates**: Special scripts ensure proper Strong's ID coverage:
+  - `scripts/update_critical_terms.py`: Updates existing words with proper Strong's IDs
+  - `scripts/insert_critical_terms.py`: Adds missing critical theological term entries
+  - `scripts/check_related_hebrew_words.py`: Validates critical term relationships
 
 ### Tagged Text Special Cases
 
@@ -1364,18 +1380,18 @@ The integration tests cover the following areas:
 The theological terms integrity test (`test_theological_terms_integrity` in `tests/integration/test_verse_data.py`) performs detailed validation of key theological concepts:
 
 - Verifies 10 critical Hebrew theological terms including:
-  - אלהים (Elohim, H430) - God
-  - יהוה (YHWH, H3068) - LORD
-  - משיח (Mashiach, H4899) - Messiah/Anointed One
-  - תורה (Torah, H8451) - Law
-  - צדק (Tsedeq, H6664) - Righteousness
+  - אלהים (Elohim, H430): Minimum 2,600 occurrences required
+  - יהוה (YHWH, H3068): Minimum 6,000 occurrences required
+  - משיח (Mashiach, H4899): Minimum 1,000 occurrences required
+  - תורה (Torah, H8451): Minimum 1,000 occurrences required
+  - צדק (Tsedeq, H6664): Minimum 1,000 occurrences required
 
 - Verifies 10 critical Greek theological terms including:
-  - θεος (Theos, G2316) - God
-  - κυριος (Kyrios, G2962) - Lord
-  - χριστος (Christos, G5547) - Christ
-  - πνευμα (Pneuma, G4151) - Spirit
-  - χαρις (Charis, G5485) - Grace
+  - θεος (Theos, G2316): Minimum 1,000 occurrences required
+  - κυριος (Kyrios, G2962): Minimum 1,000 occurrences required
+  - χριστος (Christos, G5547): Minimum 1,000 occurrences required
+  - πνευμα (Pneuma, G4151): Minimum 1,000 occurrences required
+  - χαρις (Charis, G5485): Minimum 1,000 occurrences required
 
 - Checks for key theological passages like:
   - Genesis 1:1 (Creation)
