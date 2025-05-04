@@ -125,4 +125,8 @@ This project is licensed under the MIT License. The STEPBible data is licensed u
 
 - `docs/STEPBible_Explorer_System_Build_Guide.md`: Comprehensive guide for setting up and using the system
 - `IMPORT_STRUCTURE.md`: Documentation on the import structure
+<<<<<<< HEAD
 - `FINAL_INTEGRATION_SUMMARY.md`: Summary of the integration process 
+=======
+- `FINAL_INTEGRATION_SUMMARY.md`: Summary of the integration process 
+>>>>>>> 7ce9bae97b2e6d0fe65169a363af093a8e5043a4
