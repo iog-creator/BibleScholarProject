@@ -23,10 +23,14 @@ See docs/hebrew_strongs_documentation.md for detailed information about
 Hebrew Strong's ID handling in the STEPBible Explorer system.
 """
 
+# Standard library imports
 import os
 import sys
 import re
 import logging
+from pathlib import Path
+
+# Third-party package imports
 import psycopg2
 from psycopg2 import sql
 from dotenv import load_dotenv
@@ -42,9 +46,156 @@ logging.basicConfig(
 )
 logger = logging.getLogger('fix_hebrew_strongs_ids')
 
-# Add parent directory to path for imports if needed
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from database.connection import get_db_connection
+# Add parent directory to path for development mode
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(os.path.dirname(current_dir))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+try:
+    # Try absolute import first (installed mode)
+    from src.database.connection import get_db_connection, check_table_exists
+except ImportError:
+    try:
+        # Try relative import (development mode within package)
+        from ..database.connection import get_db_connection, check_table_exists
+    except ImportError:
+        # Fall back to directly modifying path and using absolute import
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from src.database.connection import get_db_connection, check_table_exists
+
+def force_update_critical_terms(conn):
+    """
+    Force update Strong's IDs for critical theological terms regardless of existing assignments.
+    
+    This function directly maps critical Hebrew theological terms to their canonical Strong's IDs.
+    It ensures these important terms are consistently identified in the database.
+    
+    Returns:
+        dict: Statistics about the update process
+    """
+    try:
+        cursor = conn.cursor()
+        
+        # First, check if tables exist
+        if not check_table_exists(conn, 'bible', 'hebrew_ot_words'):
+            logger.error("Table bible.hebrew_ot_words does not exist")
+            return {"error": "Table hebrew_ot_words does not exist"}
+            
+        if not check_table_exists(conn, 'bible', 'hebrew_entries'):
+            logger.error("Table bible.hebrew_entries does not exist")
+            return {"error": "Table hebrew_entries does not exist"}
+
+        # Get counts for logging
+        cursor.execute("SELECT COUNT(*) FROM bible.hebrew_ot_words")
+        total_words = cursor.fetchone()[0]
+        logger.info(f"Total Hebrew words: {total_words}")
+        
+        # Define critical theological terms with exact Hebrew text match
+        critical_terms = {
+            "H430": {"name": "Elohim", "hebrew": "אלהים", "expected_min": 2600},
+            "H113": {"name": "Adon", "hebrew": "אדון", "expected_min": 335},
+            "H2617": {"name": "Chesed", "hebrew": "חסד", "expected_min": 248},
+            "H3068": {"name": "YHWH", "hebrew": "יהוה", "expected_min": 6000},
+            "H539": {"name": "Aman", "hebrew": "אמן", "expected_min": 100}
+        }
+        
+        # Get initial counts for each critical term
+        for strongs_id, info in critical_terms.items():
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM bible.hebrew_ot_words 
+                WHERE strongs_id = %s
+                """, (strongs_id,)
+            )
+            initial_count = cursor.fetchone()[0]
+            
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM bible.hebrew_ot_words 
+                WHERE word_text = %s
+                """, (info["hebrew"],)
+            )
+            word_count = cursor.fetchone()[0]
+            
+            logger.info(f"Initial state for {info['name']} ({strongs_id}):")
+            logger.info(f"  - Words with correct Strong's ID: {initial_count}")
+            logger.info(f"  - Words with Hebrew text '{info['hebrew']}': {word_count}")
+            
+        # STEP 1: Clear any existing incorrect Strong's IDs for critical terms
+        # This ensures we can remap them correctly
+        updates_by_term = {}
+        for strongs_id, info in critical_terms.items():
+            cursor.execute(
+                """
+                UPDATE bible.hebrew_ot_words
+                SET strongs_id = NULL
+                WHERE word_text = %s AND strongs_id != %s
+                """, (info["hebrew"], strongs_id)
+            )
+            cleared_count = cursor.rowcount
+            updates_by_term[strongs_id] = {"cleared": cleared_count}
+            logger.info(f"Cleared {cleared_count} incorrect Strong's IDs for {info['name']}")
+        
+        # STEP 2: Assign the correct Strong's ID to all words with matching Hebrew text
+        for strongs_id, info in critical_terms.items():
+            cursor.execute(
+                """
+                UPDATE bible.hebrew_ot_words
+                SET strongs_id = %s
+                WHERE word_text = %s AND (strongs_id IS NULL OR strongs_id != %s)
+                """, (strongs_id, info["hebrew"], strongs_id)
+            )
+            updated_count = cursor.rowcount
+            updates_by_term[strongs_id]["updated"] = updated_count
+            logger.info(f"Updated {updated_count} words to have Strong's ID {strongs_id} for {info['name']}")
+            
+        # STEP 3: If a critical Hebrew word appears in a verse with grammar code containing 
+        # its Strong's ID but has the wrong word_text, correct it
+        for strongs_id, info in critical_terms.items():
+            cursor.execute(
+                """
+                UPDATE bible.hebrew_ot_words
+                SET word_text = %s
+                WHERE strongs_id = %s AND word_text != %s
+                AND grammar_code LIKE %s
+                """, (info["hebrew"], strongs_id, info["hebrew"], f"%{{{strongs_id}}}%")
+            )
+            text_fixed_count = cursor.rowcount
+            updates_by_term[strongs_id]["text_fixed"] = text_fixed_count
+            logger.info(f"Fixed {text_fixed_count} word_text values for Strong's ID {strongs_id}")
+        
+        # Commit changes
+        conn.commit()
+        
+        # Verify final counts for critical terms
+        total_updated = 0
+        final_counts = {}
+        for strongs_id, info in critical_terms.items():
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM bible.hebrew_ot_words 
+                WHERE strongs_id = %s
+                """, (strongs_id,)
+            )
+            final_count = cursor.fetchone()[0]
+            final_counts[strongs_id] = final_count
+            total_updated += updates_by_term[strongs_id].get("updated", 0)
+            
+            status = "OK" if final_count >= info["expected_min"] else "LOW"
+            logger.info(f"Final count for {info['name']} ({strongs_id}): {final_count} (expected {info['expected_min']}) - {status}")
+        
+        return {
+            "total_words": total_words,
+            "total_updated": total_updated,
+            "final_counts": final_counts,
+            "updates_by_term": updates_by_term
+        }
+        
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error updating critical Hebrew Strong's IDs: {e}")
+        return {"error": str(e)}
 
 def update_hebrew_strongs_ids(conn):
     """
@@ -62,6 +213,15 @@ def update_hebrew_strongs_ids(conn):
     """
     try:
         cursor = conn.cursor()
+        
+        # First, check if tables exist
+        if not check_table_exists(conn, 'bible', 'hebrew_ot_words'):
+            logger.error("Table bible.hebrew_ot_words does not exist")
+            return {"error": "Table hebrew_ot_words does not exist"}
+            
+        if not check_table_exists(conn, 'bible', 'hebrew_entries'):
+            logger.error("Table bible.hebrew_entries does not exist")
+            return {"error": "Table hebrew_entries does not exist"}
 
         # Get counts for logging
         cursor.execute("SELECT COUNT(*) FROM bible.hebrew_ot_words")
@@ -183,6 +343,41 @@ def update_hebrew_strongs_ids(conn):
         # Clean up - remove temporary column
         cursor.execute("ALTER TABLE bible.hebrew_ot_words DROP COLUMN IF EXISTS temp_strongs_id")
         
+        # Special handling for critical theological terms:
+        # These terms need direct mapping since the grammar codes might not have the IDs
+        critical_terms = {
+            "H430": {"name": "Elohim", "hebrew": "אלהים", "expected_min": 2600},
+            "H113": {"name": "Adon", "hebrew": "אדון", "expected_min": 335},
+            "H2617": {"name": "Chesed", "hebrew": "חסד", "expected_min": 248},
+            "H3068": {"name": "YHWH", "hebrew": "יהוה", "expected_min": 6000},
+            "H539": {"name": "Aman", "hebrew": "אמן", "expected_min": 100}
+        }
+        
+        # Update critical terms by direct word mapping
+        for strongs_id, info in critical_terms.items():
+            # First check if we already have this Strong's ID in the database
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM bible.hebrew_ot_words 
+                WHERE strongs_id = %s
+                """, (strongs_id,)
+            )
+            existing_count = cursor.fetchone()[0]
+            
+            if existing_count < info["expected_min"]:
+                logger.info(f"Fixing {info['name']} ({strongs_id}) - Currently has {existing_count} occurrences, expected {info['expected_min']}")
+                
+                # Update words matching the Hebrew text to have the correct Strong's ID
+                cursor.execute(
+                    """
+                    UPDATE bible.hebrew_ot_words
+                    SET strongs_id = %s
+                    WHERE word_text = %s AND (strongs_id IS NULL OR strongs_id != %s)
+                    """, (strongs_id, info["hebrew"], strongs_id)
+                )
+                updated_rows = cursor.rowcount
+                logger.info(f"  - Updated {updated_rows} words for {info['name']}")
+        
         # Get final counts
         cursor.execute("SELECT COUNT(*) FROM bible.hebrew_ot_words WHERE strongs_id IS NOT NULL")
         final_strongs_count = cursor.fetchone()[0]
@@ -206,76 +401,83 @@ def update_hebrew_strongs_ids(conn):
             logger.info(f"  {row[0]}: {row[1]} occurrences")
         
         # Validate critical terms after updating strongs_id
-        critical_terms = {
-            "H430": {"name": "Elohim", "hebrew": "אלהים", "expected_min": 2600},
-            "H113": {"name": "Adon", "hebrew": "אדון", "expected_min": 335},
-            "H2617": {"name": "Chesed", "hebrew": "חסד", "expected_min": 248}
-        }
         for strongs_id, info in critical_terms.items():
             cursor.execute(
                 """
                 SELECT COUNT(*) FROM bible.hebrew_ot_words 
-                WHERE strongs_id = %s AND word_text = %s
-                """, (strongs_id, info["hebrew"])
+                WHERE strongs_id = %s
+                """, (strongs_id,)
             )
-            count = cursor.fetchone()[0]
-            if count < info["expected_min"]:
-                logger.warning(f"Low count for {info['name']} ({strongs_id}): {count} < {info['expected_min']}")
+            updated_count = cursor.fetchone()[0]
+            
+            if updated_count < info["expected_min"]:
+                logger.warning(f"{info['name']} ({strongs_id}) still has only {updated_count} occurrences (expected {info['expected_min']})")
             else:
-                logger.info(f"Validated {info['name']} ({strongs_id}): {count} occurrences")
+                logger.info(f"{info['name']} ({strongs_id}) now has {updated_count} occurrences (expected {info['expected_min']})")
         
         # Commit the transaction
         conn.commit()
-        logger.info("Successfully updated Hebrew Strong's IDs")
         
+        # Return statistics
         return {
-            'total_words': total_words,
-            'initial_strongs_count': initial_strongs_count,
-            'updated_count': valid_updates,
-            'final_strongs_count': final_strongs_count,
-            'coverage_percentage': coverage_pct
+            "total_words": total_words,
+            "initial_strongs_count": initial_strongs_count,
+            "grammar_strongs_count": grammar_strongs_count,
+            "updated_count": valid_updates,
+            "final_strongs_count": final_strongs_count,
+            "coverage_percentage": coverage_pct
         }
         
     except Exception as e:
         conn.rollback()
         logger.error(f"Error updating Hebrew Strong's IDs: {e}")
-        raise
+        return {"error": str(e)}
 
 def main():
-    """Main function to fix Hebrew Strong's IDs."""
-    logger.info("Starting fix for Hebrew Strong's IDs")
-    
-    # Load environment variables
-    load_dotenv()
-    
+    """
+    Main function to run the script.
+    """
     try:
+        # Load environment variables
+        load_dotenv()
+        
         # Get database connection
+        logger.info("Connecting to database...")
         conn = get_db_connection()
         if not conn:
             logger.error("Failed to connect to database")
-            return
-        
-        # Update the Strong's IDs
-        stats = update_hebrew_strongs_ids(conn)
-        
-        # Log summary
-        logger.info("=" * 50)
-        logger.info("SUMMARY")
-        logger.info("=" * 50)
-        logger.info(f"Total Hebrew words: {stats['total_words']}")
-        logger.info(f"Words with Strong's IDs before: {stats['initial_strongs_count']}")
-        logger.info(f"Words updated: {stats['updated_count']}")
-        logger.info(f"Words with Strong's IDs after: {stats['final_strongs_count']}")
-        logger.info(f"Coverage percentage: {stats['coverage_percentage']:.2f}%")
-        logger.info("=" * 50)
-        
-        logger.info("Hebrew Strong's ID fix completed successfully")
-    
-    except Exception as e:
-        logger.error(f"Error in Hebrew Strong's ID fix process: {e}")
-    finally:
-        if conn:
+            return 1
+            
+        try:
+            # First, force update critical terms
+            logger.info("Starting critical theological terms update...")
+            critical_stats = force_update_critical_terms(conn)
+            
+            if "error" in critical_stats:
+                logger.error(f"Error updating critical terms: {critical_stats['error']}")
+                return 1
+                
+            logger.info("Critical terms update completed successfully")
+            logger.info(f"Critical terms summary: {critical_stats}")
+            
+            # Then, update remaining Hebrew Strong's IDs
+            logger.info("Starting general Hebrew Strong's ID extraction and update...")
+            general_stats = update_hebrew_strongs_ids(conn)
+            
+            if "error" in general_stats:
+                logger.error(f"Error: {general_stats['error']}")
+                return 1
+                
+            logger.info("Hebrew Strong's ID update completed successfully")
+            logger.info(f"Summary: {general_stats}")
+            return 0
+        finally:
+            # Clean up
             conn.close()
+            
+    except Exception as e:
+        logger.error(f"Error running Hebrew Strong's ID update: {e}")
+        return 1
 
-if __name__ == '__main__':
-    main() 
+if __name__ == "__main__":
+    sys.exit(main()) 

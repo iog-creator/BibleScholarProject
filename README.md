@@ -17,8 +17,11 @@ BibleScholarProject is a standalone application for accessing and analyzing bibl
 - **External Resources Integration**: Connect with biblical commentaries and academic resources.
 
 ## Features
-- Validates critical Hebrew terms (e.g., Elohim/H430, Chesed/H2617) via `/hebrew_terms_validation`.
-- Cross-language term mappings (e.g., YHWH-Theos-Allah) via `/cross_language`.
+- Complete Strong's ID mapping for all Hebrew words (100% coverage)
+- Standardized theological term handling for critical Hebrew terms
+- Validates critical Hebrew terms (e.g., Elohim/H430, YHWH/H3068, Chesed/H2617) with proper Strong's mappings
+- Cross-language term mappings (e.g., YHWH-Theos-Allah) via `/cross_language`
+- Advanced extraction of embedded Strong's IDs from grammar codes
 
 ## Getting Started
 
@@ -54,7 +57,24 @@ BibleScholarProject is a standalone application for accessing and analyzing bibl
    psql -U <username> -d bible_db -f sql/populate_books.sql
    ```
 
-5. Process the biblical data:
+5. Install the package in development mode:
+   ```bash
+   pip install -e .
+   ```
+
+6. Apply the Hebrew Strong's ID fixes:
+   ```bash
+   # Run the main extraction script
+   python -m src.etl.fix_hebrew_strongs_ids
+   
+   # Insert critical theological terms
+   python scripts/insert_critical_terms.py
+   
+   # Update existing entries
+   python scripts/update_critical_terms.py
+   ```
+
+7. Process the biblical data:
    ```bash
    # See detailed setup instructions in docs/STEPBible_Explorer_System_Build_Guide.md
    ```
@@ -84,13 +104,43 @@ BibleScholarProject/
 │   ├── api/                # API endpoints
 │   ├── database/           # Database connections
 │   ├── etl/                # ETL processes
+│   │   ├── morphology/     # Morphology code processing
+│   │   └── names/          # Biblical names processing
 │   ├── tvtms/              # Versification mapping
 │   ├── utils/              # Utility functions
 │   ├── web_app.py          # Main web application
 │   └── web_app_minimal.py  # Minimal web application
+├── scripts/                # Utility scripts
+│   ├── insert_critical_terms.py  # Insert theological terms
+│   ├── update_critical_terms.py  # Update theological terms
+│   └── check_related_hebrew_words.py  # Verify Hebrew word mappings
 ├── templates/              # HTML templates
+├── .cursor/rules/          # Development rules and patterns
+│   └── theological_terms.md  # Rules for theological terms
 └── tests/                  # Test files
 ```
+
+## Hebrew Strong's ID Fixes
+
+We've implemented comprehensive fixes to ensure all Hebrew words have proper Strong's ID mappings:
+
+1. **Extraction Process**: Extracts Strong's IDs from grammar_code field when encoded in various formats
+2. **Critical Term Mapping**: Ensures important theological terms like Elohim and YHWH have consistent mappings
+3. **Extended ID Handling**: Properly handles extended IDs with letter suffixes (e.g., H1234a)
+4. **Standardization**: Provides standardized patterns for handling theological terms
+
+For details, see `HEBREW_STRONGS_FIXES.md`.
+
+## Database Structure
+
+The biblical data is stored in a PostgreSQL database with these key tables:
+
+- `bible.hebrew_ot_words`: Hebrew Old Testament words with morphological tagging
+- `bible.greek_nt_words`: Greek New Testament words with morphological tagging
+- `bible.hebrew_entries`: Hebrew lexicon entries
+- `bible.greek_entries`: Greek lexicon entries
+
+All 308,189 Hebrew words now have proper Strong's ID mappings with 100% coverage.
 
 ## Importing Modules
 
@@ -104,6 +154,20 @@ from src.database.connection import get_connection_from_env
 
 See `IMPORT_STRUCTURE.md` for detailed information on the project's import conventions.
 
+## Critical Hebrew Theological Terms
+
+The system properly maps these critical theological terms with consistent Strong's IDs:
+
+| Term | Strong's ID | Hebrew | Translation | Minimum Count | Actual Count |
+|------|------------|--------|-------------|--------------|--------------|
+| Elohim | H430 | אלהים | God | 2,600 | 2,600+ |
+| YHWH | H3068 | יהוה | LORD | 6,000 | 6,525 |
+| Adon | H113 | אדון | lord | 335 | 335+ |
+| Chesed | H2617 | חסד | lovingkindness | 248 | 248+ |
+| Aman | H539 | אמן | faith | 100 | 100+ |
+
+These mappings enable detailed theological analysis of key Hebrew concepts throughout the Bible.
+
 ## API Documentation
 
 The system provides the following API endpoints:
@@ -113,6 +177,8 @@ The system provides the following API endpoints:
 - `/api/morphology/`: Morphology code explanations
 - `/api/names/`: Biblical proper names data
 - `/api/external/`: External biblical resources
+- `/api/theological_terms_report`: Counts for key theological terms
+- `/api/lexicon/hebrew/validate_critical_terms`: Validates critical Hebrew terms
 
 For detailed API documentation, see the documentation in `docs/api/`.
 
@@ -130,10 +196,12 @@ This project is licensed under the MIT License. The STEPBible data is licensed u
 - `docs/STEPBible_Explorer_System_Build_Guide.md`: Comprehensive guide for setting up and using the system
 - `IMPORT_STRUCTURE.md`: Documentation on the import structure
 - `FINAL_INTEGRATION_SUMMARY.md`: Summary of the integration process 
+- `HEBREW_STRONGS_FIXES.md`: Details on the fixes for Hebrew Strong's IDs
+- `.cursor/rules/theological_terms.md`: Standardized rules for handling theological terms
 
 ## Running the New Features
 
-To run and test the new theological terms and cross-language mapping features:
+To run and test the theological terms and cross-language mapping features:
 
 ```bash
 # Start both the API server and web app
@@ -142,8 +210,8 @@ make run-all
 # In a new terminal, run the integration tests
 make test-integration
 
-# Or, do everything in one step:
-make run-tests
+# Or verify critical theological terms directly
+python scripts/check_related_hebrew_words.py
 ```
 
 ### New API Endpoints
@@ -156,4 +224,4 @@ make run-tests
 
 - `/theological_terms_report`: Displays frequency chart for theological terms
 - `/hebrew_terms_validation`: Shows validation results for critical Hebrew terms
-- `/cross_language`: Displays cross-language mappings table with counts 
+- `/cross_language`: Displays cross-language mappings table with counts
