@@ -234,7 +234,23 @@ python -m pytest tests/integration/test_etl.py
 
 ## License
 
-This project is licensed under the MIT License. The STEPBible data is licensed under CC BY 4.0 by Tyndale House, Cambridge, UK.
+This project is available under a dual license:
+
+1. **Non-Commercial Use License (Free)**: For individuals and organizations using this project without monetary compensation or commercial advantage. This includes personal study, academic research, and non-profit religious use where no fees are charged.
+
+2. **Commercial Use License (Paid)**: Required for any entity or individual using this project in a commercial context, including:
+   - Religious organizations charging fees for services using the materials
+   - For-profit religious businesses
+   - Companies selling products or services based on this project
+   - Any use where monetary compensation is received
+
+**Specific Exemptions**:
+- The PostgreSQL database structure, schema, and SQL files are freely available for all uses
+- The raw biblical data itself is freely available
+
+See the LICENSE file for complete details.
+
+The STEPBible data is licensed under CC BY 4.0 by Tyndale House, Cambridge, UK.
 
 ## Acknowledgments
 
