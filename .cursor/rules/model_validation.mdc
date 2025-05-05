@@ -1,5 +1,12 @@
 ---
-description:
-globs:
+description: Guidelines for ML model validation and evaluation
+globs: 
+  - "**/model/**/*.py"
+  - "**/dspy/**/*.py"
+  - "**/evaluation/**/*.py"
 alwaysApply: false
 ---
+
+# Model Validation Guidelines
+
+This rule provides standards for model validation in the BibleScholarProject.

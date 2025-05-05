@@ -1,0 +1,11 @@
+---
+description: Guidelines for DSPy training data generation
+globs: 
+  - "**/dspy/**/*.py"
+  - "**/data/processed/dspy_*.py"
+alwaysApply: false
+---
+
+# DSPy Training Data Generation Guidelines
+
+This rule provides standards for DSPy training data generation.

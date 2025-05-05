@@ -39,6 +39,7 @@ venv.bak/
 # Logs
 *.log
 *.log.*
+logs/
 
 # Database files
 *.db
@@ -58,4 +59,14 @@ local_settings.py
 
 # Windows
 Thumbs.db
-ehthumbs.db 
+ehthumbs.db
+
+# Project-specific exclusions
+.benchmarks/
+*.bak
+database_connection.log
+cross_language_api.log
+lexicon_api.log
+fix_hebrew_strongs_ids.log
+large_files/
+data/processed/dspy_training_data/*.jsonl 

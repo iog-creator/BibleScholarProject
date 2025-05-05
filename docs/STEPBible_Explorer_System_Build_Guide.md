@@ -61,6 +61,9 @@
     - [Morphology Code Processing Issues](#morphology-code-processing-issues)
     - [Web Application Issues](#web-application-issues-1)
   - [Maintenance](#maintenance)
+  - [DSPy Training Data Generation and AI Assistance](#dspy-training-data-generation-and-ai-assistance)
+    - [DSPy Data Generation](#dspy-data-generation)
+    - [Autonomous Web Interface Interaction](#autonomous-web-interface-interaction)
   - [License](#license)
   - [Advanced Performance Optimization](#advanced-performance-optimization)
   - [Future Enhancements](#future-enhancements)
@@ -89,6 +92,11 @@
       - [Known Issues](#known-issues)
     - [Unit Tests](#unit-tests)
     - [For Developers](#for-developers)
+
+## ⚠️ Important: TVTMS Data Source Authority
+
+> **Only `data/raw/TVTMS_expanded.txt` is the authoritative source for versification mappings in the ETL pipeline.**
+> Do **not** use the `.tsv` file for ETL or integration. The `.tsv` is for reference or manual inspection only.
 
 This document provides a comprehensive guide for building and running the STEPBible Explorer system, which includes multiple ETL pipelines, database components, API endpoints, and a web interface. The system processes data from the STEPBible project, including lexicons (TBESH and TBESG), tagged Bible texts (TAGNT and TAHOT), and versification mappings (TVTMS).
 
@@ -245,9 +253,9 @@ Each directory contains a README.md file explaining its purpose and contents.
      - `data/TEGMC - Translators Expansion of Greek Morphhology Codes - STEPBible.org CC BY.txt`
 
 4. **TVTMS File**:
-   - `STEPBible-Data/TVTMS - Translators Versification Traditions with Methodology for Standardisation for Eng+Heb+Lat+Grk+Others - STEPBible.org CC BY.txt`: A tab-separated file with versification mappings
-   - Contains columns: SourceType, SourceRef, StandardRef, Action, NoteMarker, etc.
-   - Expanded section starts around line 3802, marked by `#DataStart(Expanded)`
+   - `data/raw/TVTMS_expanded.txt`: The **only** authoritative, tab-separated text file for versification mappings. Used by the ETL and parser.
+   - **Do not use** the `.tsv` file for ETL. It is not supported by the parser or integration tests.
+   - The expanded section starts around line 3802, marked by `#DataStart(Expanded)`
 
 ## System Components
 
@@ -344,7 +352,7 @@ The proper names processing system uses these key files in `src/etl/names/`:
 The TVTMS processing system is organized under `src/tvtms/` with these key files:
 
 - **parser.py**:
-  - Parses the TSV file, handling various reference formats
+  - Parses the expanded TXT file (`TVTMS_expanded.txt`), handling various reference formats
   - Manages special cases (Psalm titles, letter chapters, subverses)
   - Expands ranges and evaluates test conditions
 
@@ -1026,423 +1034,98 @@ Regular maintenance tasks include:
    - Regularly back up the database with `pg_dump`
    - Consider incremental backup strategies for large databases
 
+## DSPy Training Data Generation and AI Assistance
+
+The system now includes comprehensive DSPy training data generation to enable AI assistance and autonomous interaction with the web interface.
+
+### DSPy Data Generation
+
+1. **Generating DSPy Training Data**:
+   - Run the DSPy training data generator:
+     ```bash
+     python scripts/generate_dspy_training_data.py
+     ```
+   - This creates formatted JSONL files in `data/processed/dspy_training_data/`:
+     * `qa_dataset.jsonl` - Question-answering pairs for Bible verses
+     * `theological_terms_dataset.jsonl` - Theological term analysis examples
+     * `ner_dataset.jsonl` - Named entity recognition data
+     * `web_interaction_dataset.jsonl` - Web interface interaction patterns
+     * `evaluation_metrics.jsonl` - Custom theological evaluation metrics
+
+2. **Key Features and Requirements**:
+   - All data generation must include theological term integrity checks
+   - Critical terms (Elohim, YHWH, Adon, Chesed, Aman) must meet minimum occurrence counts
+   - Processing must be done in batches of at least 100 records at a time for efficiency
+   - Web interaction training must include parameter extraction and response formatting
+
+3. **Performance Guidelines**:
+   - Run generation with `conn.autocommit = True` to prevent transaction issues
+   - Use batch processing instead of one-by-one record processing
+   - Use parallel processing for large datasets when possible:
+     ```python
+     # Example batch processing approach
+     def process_in_batches(items, batch_size=100):
+         results = []
+         for i in range(0, len(items), batch_size):
+             batch = items[i:i+batch_size]
+             # Process batch
+             batch_results = process_batch(batch)
+             results.extend(batch_results)
+         return results
+     ```
+
+### Autonomous Web Interface Interaction
+
+1. **Enabling AI-Assisted Interface**:
+   - The `web_interaction_dataset.jsonl` provides training examples for:
+     * Database search tasks
+     * Strong's lexicon lookups
+     * Translation comparison
+     * Theological analysis
+   
+   - Integration with the web application:
+     ```python
+     # Example DSPy Agent setup for web interaction
+     class BibleSearchAgent(dspy.Module):
+         def __init__(self):
+             super().__init__()
+             self.query_parser = dspy.ChainOfThought("context, query -> action, parameters")
+             
+         def forward(self, query):
+             # Parse query and extract parameters
+             parsed = self.query_parser(context="Biblical research assistant", query=query)
+             
+             # Execute appropriate action based on parsed intent
+             if parsed.action == "search_database":
+                 return search_bible_database(**parsed.parameters)
+             elif parsed.action == "lookup_strongs":
+                 return lookup_strongs_entry(**parsed.parameters)
+             # Other actions...
+     ```
+
+2. **DSPy Optimization for Theological Accuracy**:
+   - Custom theological evaluation metrics ensure accuracy in critical concepts
+   - Models can be optimized using DSPy's SIMBA or other prompt optimizers:
+     ```python
+     from dspy.teleprompt import SIMBA
+     
+     # Training DSPy for theological accuracy
+     optimizer = SIMBA(metric="theological_accuracy")
+     optimized_model = optimizer.optimize(model, trainset=trainset)
+     ```
+
+3. **Deployment and Management**:
+   - Deploy optimized models as API endpoints
+   - Monitor theological accuracy metrics
+   - Regularly update training data with new examples
+   - Implement user feedback collection for continuous improvement
+
+4. **Theological Accuracy Requirements**:
+   - All AI responses must maintain theological term integrity
+   - Critical terms like Elohim (H430) and YHWH (H3068) must be handled correctly
+   - Responses must align with scholarly biblical interpretations
+   - Named entity recognition must correctly identify DEITY vs PERSON entities
+
 ## License
 
-This project is licensed under the MIT License. The STEPBible data is licensed under CC BY 4.0 by Tyndale House, Cambridge, UK.
-
-## Advanced Performance Optimization
-
-- **Database Indexes**: Indexes are created by the `scripts/optimize_database.py` script for key fields:
-  ```sql
-  CREATE INDEX IF NOT EXISTS idx_hebrew_strongs ON bible.hebrew_entries(strongs_id);
-  CREATE INDEX IF NOT EXISTS idx_greek_strongs ON bible.greek_entries(strongs_id);
-  CREATE INDEX IF NOT EXISTS idx_verse_reference ON bible.verses(book_name, chapter_num, verse_num);
-  CREATE INDEX IF NOT EXISTS idx_greek_words_strongs ON bible.greek_nt_words(strongs_id);
-  CREATE INDEX IF NOT EXISTS idx_hebrew_words_strongs ON bible.hebrew_ot_words(strongs_id);
-  CREATE INDEX IF NOT EXISTS idx_hebrew_morphology_code ON bible.hebrew_morphology_codes(code);
-  CREATE INDEX IF NOT EXISTS idx_greek_morphology_code ON bible.greek_morphology_codes(code);
-  ```
-
-- **Batch Processing**: Use batch operations for large datasets:
-  - Configure optimal batch sizes in ETL scripts (1000 records is often a good starting point)
-  - Use incremental commits to prevent long-running transactions:
-    ```python
-    for i, item in enumerate(items):
-        # Process item
-        if i % 1000 == 0:
-            conn.commit()  # Commit every 1000 items
-    ```
-
-- **Query Optimization**: Monitor and optimize slow queries:
-  - Use EXPLAIN ANALYZE for troubleshooting
-  - Consider materialized views for complex queries
-
-## Future Enhancements
-
-1. **Enhanced Search Capabilities**: Add fuzzy search, semantic search, and advanced filters
-2. **Data Visualization**: Add word frequency charts, semantic relationship graphs, etc.
-3. **Export Functionality**: Allow export of search results and detailed word studies
-4. **Concordance Generation**: Create customizable concordances based on user queries
-5. **Integration with Other Resources**: Connect with external biblical resources and commentaries
-6. **Versification Improvements**:
-   - Implement verse swap detection
-   - Enhance handling of unformatted headers
-   - Support more complex test conditions
-
-## Integration with External Biblical Resources (Completed: May 2025)
-
-### Current Status
-The STEPBible Explorer system now features comprehensive integration with external biblical resources and commentaries, transforming it from a standalone reference tool into a comprehensive research platform. This integration enables users to access a wide range of scholarly resources, commentaries, and reference works alongside the biblical text.
-
-### Implementation Details
-
-**Integration with External Resources**: Connect with external biblical resources and commentaries
-   - **APIs and Services Integrated**:
-     * Bible Web Service APIs (Bible Gateway, ESV API, Bible.org)
-     * Academic commentary repositories (Digital Theological Library)
-     * Ancient manuscript databases (CSNTM, Codex Sinaiticus Project)
-     * Archaeological databases (Biblical Archaeology Society, PEF)
-     * Translation comparison services (multiple Bible versions)
-   
-   - **Integration Architecture**:
-     * Modular API connection framework with standardized interfaces
-     * Secure authentication system with API key management
-     * Robust caching mechanism with configurable expiration policies
-     * Error handling with graceful fallbacks when services are unavailable
-     * Rate limiting to prevent API quota exhaustion
-   
-   - **Resource Features Implemented**:
-     * Commentary display alongside Bible text in split-pane interface
-     * Reference linking between resources and biblical passages
-     * Archaeological data mapped to biblical locations
-     * Manuscript viewing with original text comparison
-     * Citation generation in multiple academic formats (Chicago, MLA, SBL)
-     * Multi-translation comparison with highlighting of differences
-
-   - **User Interface Components**:
-     * Verse-with-resources view showing contextual biblical information
-     * Tabbed interface for different resource types
-     * Resource settings for user customization
-     * Resource filtering by type, source, and relevance
-     * Mobile-responsive design with adaptive layouts
-
-   - **Security and Performance Considerations**:
-     * All API keys stored in environment variables, not in code
-     * Multi-level cache system to reduce external API calls
-     * Graceful degradation when resources are unavailable
-     * Rate limiting to prevent API abuse
-     * Error monitoring with detailed logging for troubleshooting
-
-   - **Future Expansion Plans**:
-     * User account system for personalized resource preferences
-     * Additional academic repository connections
-     * Enhanced manuscript comparison tools
-     * Integration with linguistic corpus data
-     * User contribution system for notes and annotations
-
-### Priority Resources for Integration
-1. Academic commentaries (critical, historical, textual)
-2. Archaeological reference databases
-3. Historical atlases and geographical information
-4. Ancient language lexicons and dictionaries
-5. Manuscript image repositories
-6. Theological reference works
-7. Cross-cultural and comparative religious studies
-
-### Detailed Implementation Guide
-
-#### 1. API Connection Framework
-
-The system uses a modular API connection framework with these components:
-
-- **API Client Layer**: Core classes for handling requests, authentication, and responses
-- **Resource Type Adapters**: Convertors for different external data formats
-- **Caching System**: In-memory and persistent storage for API responses
-- **Rate Limiting**: Controls for respecting API provider limits
-- **Error Handling**: Graceful fallbacks when services are unavailable
-
-##### API Module Structure:
-
-```
-src/api/
-├── external_resources_api.py     # Main Blueprint for external resources routes
-├── connectors/                   # Connection handlers for each API provider
-│   ├── __init__.py
-│   ├── base_connector.py         # Base class for API connectors 
-│   ├── bible_gateway.py          # Bible Gateway API connector
-│   ├── esv_api.py                # ESV API connector
-│   ├── bible_org.py              # Bible.org API connector
-│   ├── dtl_connector.py          # Digital Theological Library connector
-│   └── archaeological_db.py      # Archaeological database connector
-├── models/                       # Data models for external resources
-│   ├── __init__.py
-│   ├── commentary.py             # Commentary model
-│   ├── manuscript.py             # Manuscript model
-│   └── resource_reference.py     # Resource reference model
-└── utils/                        # Utility functions
-    ├── __init__.py
-    ├── cache.py                  # Caching utilities
-    ├── auth.py                   # Authentication helpers
-    └── citation.py               # Citation generation
-```
-
-#### 2. Caching Architecture
-
-The system implements a multi-level caching strategy:
-
-**Level 1: In-Memory Cache**
-- Used for frequently accessed resources
-- Configurable time-to-live (TTL)
-- Implemented using Python dictionaries with LRU mechanism
-
-**Level 2: Local Storage Cache**
-- JSON files for persistent storage between application restarts
-- Directory structure based on resource types and references
-- Automatic invalidation based on configurable age thresholds
-
-**Level 3: Database Cache**
-- Long-term storage for commonly used resources
-- Tables for different resource types
-- Versioning to track updates from source APIs
-
-##### Cache Implementation:
-
-```python
-class ResourceCache:
-    def __init__(self, cache_duration=86400):  # Default to 1 day
-        self.memory_cache = {}  # In-memory cache
-        self.cache_duration = cache_duration
-        
-    def get(self, key):
-        """Get resource from cache if available and not expired"""
-        if key in self.memory_cache:
-            timestamp, data = self.memory_cache[key]
-            if time.time() - timestamp < self.cache_duration:
-                return data
-        # Try database cache if not in memory
-        return self._get_from_db(key)
-    
-    def set(self, key, data):
-        """Store resource in cache with current timestamp"""
-        self.memory_cache[key] = (time.time(), data)
-        # Also store in database for persistence
-        self._store_in_db(key, data)
-        
-    def invalidate(self, key=None):
-        """Invalidate cache entry or entire cache"""
-        if key:
-            if key in self.memory_cache:
-                del self.memory_cache[key]
-            self._remove_from_db(key)
-        else:
-            self.memory_cache.clear()
-            self._clear_db_cache()
-```
-
-#### 3. Authentication and Security
-
-- **Environment Variables**: API keys stored in environment variables, not in code
-- **OAuth Handling**: Support for OAuth 1.0a and 2.0 authentication flows
-- **Token Rotation**: Automatic refreshing of expired tokens
-- **Credential Security**: No credentials in logs or error messages
-- **Request Signing**: HMAC signing for APIs that require it
-
-##### Authentication Implementation:
-
-```python
-class ApiAuthenticator:
-    def __init__(self, api_name):
-        self.api_name = api_name
-        self.load_credentials()
-        
-    def load_credentials(self):
-        """Load API credentials from environment variables"""
-        env_prefix = self.api_name.upper().replace('-', '_')
-        self.api_key = os.getenv(f"{env_prefix}_API_KEY")
-        self.api_secret = os.getenv(f"{env_prefix}_API_SECRET")
-        self.access_token = os.getenv(f"{env_prefix}_ACCESS_TOKEN")
-        
-    def get_auth_headers(self):
-        """Generate authentication headers for API requests"""
-        if not self.api_key:
-            logger.error(f"Missing API key for {self.api_name}")
-            return {}
-            
-        if self.api_name == "bible_gateway":
-            return {"Authorization": f"Bearer {self.api_key}"}
-        elif self.api_name == "esv":
-            return {"Authorization": f"Token {self.api_key}"}
-        # Add other API specific auth methods
-        
-        return {"X-API-Key": self.api_key}
-```
-
-## Project Integration Status
-
-The BibleScholarProject has been successfully integrated as a standalone, self-contained application with all necessary components from the parent project. The integration process involved:
-
-1. **Module Structure Standardization**: All Python modules now follow a consistent import structure using `src` as the root package.
-
-2. **Import Path Fixes**: All import statements have been updated to use the correct paths, ensuring modules can find their dependencies.
-
-3. **API Module Integration**: All API modules now follow a consistent pattern with Flask Blueprints and standardized database connection handling.
-
-4. **Database Utility Functions**: Common database functions like `get_db_connection()` have been properly implemented in the utility modules.
-
-5. **Package Recognition**: Proper `__init__.py` files have been added to all packages to ensure Python recognizes the directory structure.
-
-6. **Documentation**: Comprehensive documentation has been created:
-   - `IMPORT_STRUCTURE.md`: Details the Python import conventions
-   - `REORGANIZATION.md`: Explains the reorganization of files
-   - `FINAL_INTEGRATION_SUMMARY.md`: Provides a complete overview of the integration process
-
-7. **Testing Utilities**: Tools for verifying the integration have been created:
-   - `check_imports.py`: Verifies that modules can be imported
-   - `test_api_imports.py`: Tests specific API module imports
-   - `test_web_app_imports.py`: Verifies web application imports
-   - `fix_imports.py`: Automatically corrects common import issues
-
-This integration ensures that the BibleScholarProject can be deployed and run independently, while maintaining all the functionality of the original system.
-
-## Current Data Status
-
-The following datasets have been successfully processed:
-
-1. **Hebrew & Greek Lexicons**: 
-   - 9,345 Hebrew lexicon entries
-   - 10,847 Greek lexicon entries
-   - 10,846 LSJ lexicon entries
-   - Fully processed from the TBESH, TBESG, and TFLSJ files
-
-2. **Tagged Bible Texts**:
-   - 31,219 verses loaded
-   - Processed from the TAHOT (Hebrew OT) and TAGNT (Greek NT) files
-
-3. **Morphology Codes**:
-   - 1,013 Hebrew morphology codes
-   - 1,730 Greek morphology codes
-   - Processed from the TEHMC and TEGMC files
-
-4. **Proper Names**:
-   - 1,317 proper names loaded
-   - Primary entities processed from the TIPNR file:
-     - `STEPBible-Data/TIPNR - Translators Individualised Proper Names with all References - STEPBible.org CC BY.txt` or
-     - `data/TIPNR - Translators Individualised Proper Names with all References - STEPBible.org CC BY.txt`
-   - Name forms and references fully integrated
-
-5. **Versification Mappings**:
-   - 54,924 verse mappings loaded
-   - Processed from the TVTMS file
-
-6. **Arabic Bible**:
-   - 31,091 verses and 382,293 words processed
-   - Complete Old and New Testament coverage
-   - Full word-level tagging with Strong's number mapping
-   - Parallel text alignment with original languages
-   - Processed from the TTAraSVD files
-
-## References
-
-- STEPBible Data Repository: [STEPBible/STEPBible-Data](https://github.com/STEPBible/STEPBible-Data)
-- STEPBible Website: [STEPBible.org](https://www.stepbible.org/)
-- Data Files:
-  - Lexicons: TBESH, TBESG, TFLSJ
-  - Tagged Texts: TAGNT, TAHOT, TTAraSVD
-  - Morphology Codes: TEHMC, TEGMC
-  - Proper Names: TIPNR
-  - Versification: TVTMS_expanded.txt
-- Project Documentation:
-  - `README.md`: Overview and quick start
-  - `COMPLETED_WORK.md`: Summary of implemented features
-  - `docs/STEPBible_Data_Guide.md`: Detailed guide to data files and formats
-  - `REORGANIZATION_SUMMARY.md`: Summary of project reorganization work 
-
-## Testing Framework
-
-### Integration Tests
-
-The STEPBible Explorer system includes a comprehensive integration test framework to verify data integrity and system functionality. These tests ensure that the biblical data has been correctly extracted, processed, and loaded into the database.
-
-#### Running Core Tests
-
-To run all core integration tests:
-
-```bash
-python tests/run_verification_tests.py
-```
-
-This will run all essential tests and generate a detailed log file in the `logs/tests/` directory with a timestamp.
-
-#### Focusing on Theological Term Integrity
-
-For theological research, we've developed specialized tests to verify the integrity of key theological terms:
-
-```bash
-python tests/run_verification_tests.py --theological
-```
-
-This focuses only on theological term integrity tests, which verify that critical Hebrew terms (like אלהים/Elohim, יהוה/YHWH) and Greek terms (like θεος/Theos, χριστος/Christos) are properly represented in the database with correct Strong's ID mappings.
-
-#### Test Components
-
-The integration tests cover the following areas:
-
-1. **Database Integrity** - Verifies database structure and relationships
-2. **Hebrew Strong's ID Handling** - Confirms proper Strong's ID extraction and mapping
-3. **Lexicon Data** - Validates lexicon entries and relationships
-4. **Verse Data** - Tests verse content and theological term integrity
-5. **Morphology Data** - Checks morphology code coverage and usage
-6. **Arabic Bible Data** - Verifies Arabic Bible integration
-7. **ETL Integrity** - Confirms ETL process execution and results
-
-#### Theological Terms Testing
-
-The theological terms integrity test (`test_theological_terms_integrity` in `tests/integration/test_verse_data.py`) performs detailed validation of key theological concepts:
-
-- Verifies 10 critical Hebrew theological terms including:
-  - אלהים (Elohim, H430): Minimum 2,600 occurrences required
-  - יהוה (YHWH, H3068): Minimum 6,000 occurrences required
-  - משיח (Mashiach, H4899): Minimum 1,000 occurrences required
-  - תורה (Torah, H8451): Minimum 1,000 occurrences required
-  - צדק (Tsedeq, H6664): Minimum 1,000 occurrences required
-
-- Verifies 10 critical Greek theological terms including:
-  - θεος (Theos, G2316): Minimum 1,000 occurrences required
-  - κυριος (Kyrios, G2962): Minimum 1,000 occurrences required
-  - χριστος (Christos, G5547): Minimum 1,000 occurrences required
-  - πνευμα (Pneuma, G4151): Minimum 1,000 occurrences required
-  - χαρις (Charis, G5485): Minimum 1,000 occurrences required
-
-- Checks for key theological passages like:
-  - Genesis 1:1 (Creation)
-  - Deuteronomy 6:4 (Shema)
-  - Isaiah 53:5 (Suffering Servant)
-  - John 3:16 (For God so loved the world)
-  - Romans 3:23 (All have sinned)
-
-#### Test Verification Report
-
-The test runner produces a detailed report showing:
-
-1. **Database Record Counts** - Statistics for verses, words, lexicon entries, etc.
-2. **Test Execution Results** - Pass/fail status for each test
-3. **Database Verification Summary** - Detailed statistics with expected values
-4. **Theological Terms Statistics** - Counts of key theological terms with expected ranges
-
-#### Interpreting Test Results
-
-- **✅ Passed** - Test completed successfully
-- **⚠️ Warning** - Test passed but with some non-critical issues
-- **❌ Failed** - Test failed and requires attention
-
-The database verification section compares actual counts with expected values. Small variances in some areas (like LSJ lexicon entries or Arabic word counts) are acceptable and documented in the tolerance ranges.
-
-#### Known Issues
-
-Some tests are known to fail due to test data format issues rather than actual data problems:
-
-1. TVTMS Parser Tests - Issues with test file format
-2. Pandas Tests - Issues with test data format
-3. Versification Tests - Mapping discrepancies in tradition names
-
-These tests are marked as "known failing tests" and don't indicate problems with the core functionality.
-
-### Unit Tests
-
-In addition to integration tests, the system includes targeted unit tests for specific components:
-
-```bash
-python -m pytest tests/unit/
-```
-
-These tests verify the behavior of individual functions and classes.
-
-### For Developers
-
-When extending the system, always add appropriate tests for new functionality:
-
-1. **Unit tests** for new functions or classes
-2. **Integration tests** for new data sources or end-to-end functionality
-3. **Update expected counts** in test_database_integrity.py when data changes
-
-See `docs/integration_testing_checklist.md` for a complete list of tests and expected values. 
+This project is licensed under the MIT License. The STEPBible data is licensed under CC BY 4.0 by Tyndale House, Cambridge, UK. 

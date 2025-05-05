@@ -1,0 +1,11 @@
+---
+description: Guidelines for enforcing data types in pandas DataFrames
+globs: 
+  - "**/etl/**/*.py"
+  - "**/scripts/**/*pandas*.py"
+alwaysApply: false
+---
+
+# Pandas DataFrame Type Enforcement Guidelines
+
+This rule provides standards for enforcing data types in pandas DataFrames.

@@ -18,9 +18,13 @@ logger = logging.getLogger(__name__)
 # Import database connection
 from src.database.connection import get_connection_string
 
+ARABIC_BIBLE_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), '..', '..', 'data', 'Tagged-Bibles', 'Arabic Bibles', 'Translation Tags Individual Books'
+)
+
 pytestmark = pytest.mark.skipif(
-    not os.getenv('DATABASE_URL'),
-    reason='DATABASE_URL not set; skipping DB-dependent integration tests (see Cursor rule db_test_skip.mdc)'
+    not os.path.exists(ARABIC_BIBLE_DATA_DIR),
+    reason=f'Arabic Bible data directory not found: {ARABIC_BIBLE_DATA_DIR}'
 )
 
 @pytest.fixture(scope="module")

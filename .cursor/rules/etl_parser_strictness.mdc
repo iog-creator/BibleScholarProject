@@ -1,0 +1,11 @@
+---
+description: Guidelines for ETL parser strictness levels
+globs: 
+  - "**/etl/**/*parser*.py"
+  - "**/scripts/**/*parser*.py"
+alwaysApply: false
+---
+
+# ETL Parser Strictness Guidelines
+
+This rule provides standards for handling strictness levels in ETL parsers.

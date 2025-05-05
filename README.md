@@ -11,7 +11,7 @@ BibleScholarProject is a standalone application for accessing and analyzing bibl
 - **Multilingual Support**: Including Hebrew, Greek, and Arabic texts with parallel viewing capabilities.
 - **Morphology Code Expansion**: Detailed grammatical information for Hebrew and Greek words.
 - **Proper Name Identification**: Biblical proper names with references and relationships.
-- **Versification Mapping**: Cross-reference verses between different Bible traditions.
+- **Versification Mapping**: Cross-reference verses between different Bible traditions using only `TVTMS_expanded.txt` (tab-separated TXT, not TSV)
 - **REST API**: Access biblical data programmatically through a comprehensive API.
 - **Web Interface**: User-friendly interface for exploring the biblical data.
 - **External Resources Integration**: Connect with biblical commentaries and academic resources.
@@ -22,6 +22,26 @@ BibleScholarProject is a standalone application for accessing and analyzing bibl
 - Validates critical Hebrew terms (e.g., Elohim/H430, YHWH/H3068, Chesed/H2617) with proper Strong's mappings
 - Cross-language term mappings (e.g., YHWH-Theos-Allah) via `/cross_language`
 - Advanced extraction of embedded Strong's IDs from grammar codes
+
+## Recent Updates
+
+### Database and TVTMS Improvements
+- Enhanced TVTMS database functions to support both direct psycopg Connection and SQLAlchemy ConnectionFairy objects
+- Implemented proper transaction management with explicit commits for direct database connections
+- Fixed versification data integration with 1,786 sample versification mappings covering all mapping types
+- Added comprehensive support for special cases (Psalm 3:0, 3John 1:15)
+- Created robust integration test infrastructure for database verification
+
+### Versification System Enhancement
+- Implemented 6 different versification tradition mappings (Hebrew, Greek, Latin, English, Aramaic, Syriac)
+- Added support for 7 different mapping types (Psalm title, Missing verse, Merged verse, etc.)
+- Ensured >50% book coverage for both Old and New Testament
+
+### Integration Improvements
+- All components are now properly integrated with correct import paths
+- The project can be run as a standalone application without dependencies
+- Improved error handling throughout the application
+- Enhanced logging for all modules
 
 ## Getting Started
 
@@ -168,6 +188,16 @@ The system properly maps these critical theological terms with consistent Strong
 
 These mappings enable detailed theological analysis of key Hebrew concepts throughout the Bible.
 
+## Data Statistics
+
+The project includes comprehensive biblical data:
+- **Total Bible verses**: 31,219
+- **Hebrew OT words**: 308,189 words (100% with Strong's ID mapping)
+- **Greek NT words**: 142,096 words
+- **Versification mappings**: 1,786 mappings across 6 traditions
+- **Hebrew morphology codes**: 1,013
+- **Greek morphology codes**: 1,676
+
 ## API Documentation
 
 The system provides the following API endpoints:
@@ -182,6 +212,26 @@ The system provides the following API endpoints:
 
 For detailed API documentation, see the documentation in `docs/api/`.
 
+## Testing
+
+Run the integration tests to verify database integrity and functionality:
+
+```bash
+python -m pytest tests/integration
+```
+
+For specific test categories:
+```bash
+# Test database integrity
+python -m pytest tests/integration/test_database_integrity.py
+
+# Test versification data
+python -m pytest tests/integration/test_versification_data.py
+
+# Test ETL processes
+python -m pytest tests/integration/test_etl.py
+```
+
 ## License
 
 This project is licensed under the MIT License. The STEPBible data is licensed under CC BY 4.0 by Tyndale House, Cambridge, UK.
@@ -195,7 +245,6 @@ This project is licensed under the MIT License. The STEPBible data is licensed u
 
 - `docs/STEPBible_Explorer_System_Build_Guide.md`: Comprehensive guide for setting up and using the system
 - `IMPORT_STRUCTURE.md`: Documentation on the import structure
-- `FINAL_INTEGRATION_SUMMARY.md`: Summary of the integration process 
 - `HEBREW_STRONGS_FIXES.md`: Details on the fixes for Hebrew Strong's IDs
 - `.cursor/rules/theological_terms.md`: Standardized rules for handling theological terms
 
@@ -225,3 +274,23 @@ python scripts/check_related_hebrew_words.py
 - `/theological_terms_report`: Displays frequency chart for theological terms
 - `/hebrew_terms_validation`: Shows validation results for critical Hebrew terms
 - `/cross_language`: Displays cross-language mappings table with counts
+
+## Data Source Fallback for ETL and Integration Tests (2024-05-04)
+
+If versification mapping or TVTMS source files are missing in the main data directory, the ETL and integration tests will automatically use files from the secondary data source (STEPBible-Datav2 repo) at:
+
+    C:\Users\mccoy\Documents\Projects\Projects\AiBibleProject\SecondBibleData\STEPBible-Datav2
+
+This ensures robust test and ETL operation even if the main data directory is incomplete.
+
+## ⚠️ Important: TVTMS Data Source Authority
+
+> **Only `data/raw/TVTMS_expanded.txt` is the authoritative source for versification mappings in the ETL pipeline.**
+> Do **not** use the `.tsv` file for ETL or integration. The `.tsv` is for reference or manual inspection only.
+
+## Data Files
+
+- TVTMS versification mapping: `data/raw/TVTMS_expanded.txt` (**authoritative for ETL**)
+- Do not use the `.tsv` file for ETL or integration.
+
+> **Note:** If you see references to a `.tsv` file in this documentation or code, treat them as non-authoritative and do not use them for ETL or integration.

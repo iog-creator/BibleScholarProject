@@ -101,31 +101,52 @@ def create_tables(conn):
         logger.info("Arabic Bible tables and indexes created or verified")
 
 def open_file_with_zip_support(file_path):
-    """Open a file with zip support if it's a zip file."""
-    # Check if the file is a zip file
-    if file_path.lower().endswith('.zip'):
-        logger.info(f"Processing zip file: {file_path}")
-        # Create a temporary directory to extract the zip file
-        with tempfile.TemporaryDirectory() as temp_dir:
-            with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                # Extract the files to the temporary directory
-                zip_ref.extractall(temp_dir)
-                # Get the extracted files
-                extracted_files = os.listdir(temp_dir)
-                # Assuming there's only one text file in the zip
-                for extracted_file in extracted_files:
-                    if extracted_file.lower().endswith('.txt'):
-                        extracted_path = os.path.join(temp_dir, extracted_file)
-                        logger.info(f"Found text file in zip: {extracted_file}")
-                        # Return the file content
-                        with codecs.open(extracted_path, 'r', encoding='utf-8-sig', errors='replace') as file:
-                            return file.read()
+    """
+    Open the file, taking into account that it might be in a zip file.
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        The file content as a string
+    """
+    # Normalize file path for cross-platform compatibility
+    file_path = os.path.normpath(file_path)
+    
+    # If file doesn't exist directly, check if it's in a zip file
+    if not os.path.isfile(file_path):
+        logger.warning(f"File not found: {file_path}")
+        # Try to find a zip file in the directory
+        directory = os.path.dirname(file_path)
+        if os.path.isdir(directory):
+            for zip_file in os.listdir(directory):
+                if zip_file.lower().endswith('.zip'):
+                    zip_path = os.path.join(directory, zip_file)
+                    with zipfile.ZipFile(zip_path, 'r') as z:
+                        # Check if the file is in the zip
+                        file_basename = os.path.basename(file_path)
+                        for zipped_file in z.namelist():
+                            if file_basename in zipped_file:
+                                # Extract and open the file
+                                extracted_path = z.extract(zipped_file, path=directory)
+                                # Return the file content
+                                with codecs.open(extracted_path, 'r', encoding='utf-8-sig', errors='replace') as file:
+                                    return file.read()
         # If no text files found, return empty string
         return ""
     else:
         # Regular text file, open directly
-        with codecs.open(file_path, 'r', encoding='utf-8-sig', errors='replace') as file:
-            return file.read()
+        try:
+            with codecs.open(file_path, 'r', encoding='utf-8-sig', errors='replace') as file:
+                return file.read()
+        except Exception as e:
+            logger.error(f"Error opening file {file_path}: {str(e)}")
+            # Provide more detailed error information
+            logger.error(f"File exists: {os.path.exists(file_path)}")
+            logger.error(f"Is file: {os.path.isfile(file_path)}")
+            logger.error(f"Absolute path: {os.path.abspath(file_path)}")
+            # Re-raise to let caller handle
+            raise
 
 def parse_arabic_bible_file(file_path, is_old_testament=False):
     """

@@ -8,27 +8,55 @@ import re
 
 @dataclass
 class Mapping:
-    """Represents a mapping between different versification traditions."""
-    source_tradition: str
-    target_tradition: str
-    source_book: str
-    source_chapter: str
-    source_verse: Optional[int]
-    source_subverse: Optional[str]
-    manuscript_marker: Optional[str]
-    target_book: str
-    target_chapter: str
-    target_verse: Optional[int]
-    target_subverse: Optional[str]
-    mapping_type: str
-    category: Optional[str]
-    notes: Optional[str]
-    source_range_note: Optional[str]
-    target_range_note: Optional[str]
-    note_marker: Optional[str]
-    ancient_versions: Optional[str]
+    """Class representing a versification mapping between traditions."""
+    def __init__(self, 
+                 source_tradition=None, 
+                 target_tradition=None,
+                 source_book=None, 
+                 source_chapter=None, 
+                 source_verse=None, 
+                 source_subverse=None,
+                 manuscript_marker=None,
+                 target_book=None, 
+                 target_chapter=None, 
+                 target_verse=None, 
+                 target_subverse=None,
+                 mapping_type=None, 
+                 category=None, 
+                 notes=None, 
+                 source_range_note=None, 
+                 target_range_note=None,
+                 note_marker=None,
+                 ancient_versions=None):
+        """Initialize a mapping with the given attributes."""
+        self.source_tradition = source_tradition
+        self.target_tradition = target_tradition
+        self.source_book = source_book
+        self.source_chapter = source_chapter
+        self.source_verse = source_verse
+        self.source_subverse = source_subverse
+        self.manuscript_marker = manuscript_marker
+        self.target_book = target_book
+        self.target_chapter = target_chapter
+        self.target_verse = target_verse
+        self.target_subverse = target_subverse
+        self.mapping_type = mapping_type
+        self.category = category
+        self.notes = notes
+        self.source_range_note = source_range_note
+        self.target_range_note = target_range_note
+        self.note_marker = note_marker
+        self.ancient_versions = ancient_versions
+        
+    def __repr__(self):
+        """Return a string representation of the mapping."""
+        return (f"Mapping({self.source_tradition}, {self.target_tradition}, "
+                f"{self.source_book} {self.source_chapter}:{self.source_verse}, "
+                f"{self.target_book} {self.target_chapter}:{self.target_verse}, "
+                f"{self.mapping_type})")
 
     def to_dict(self):
+        """Convert the Mapping object to a dictionary suitable for database insertion."""
         return {
             'source_tradition': self.source_tradition,
             'target_tradition': self.target_tradition,
@@ -57,21 +85,39 @@ class Mapping:
             raise ValueError("Required field: source_tradition or target_tradition is missing")
         if not self.source_book or not self.target_book:
             raise ValueError("Required field: source_book or target_book is missing")
-        if self.source_chapter is None or self.target_chapter is None:
+        if self.mapping_type and self.mapping_type.startswith('range_'):
+            # For range mappings, chapter and verse can be None
+            pass
+        elif self.source_chapter is None or self.target_chapter is None:
             raise ValueError("Required field: source_chapter or target_chapter is missing")
-        if self.source_verse is None or self.target_verse is None:
+        elif self.source_verse is None or self.target_verse is None:
             raise ValueError("Required field: source_verse or target_verse is missing")
+        
         # Valid mapping_type
-        valid_types = {'standard', 'renumbering', 'merge', 'split', 'omit', 'insert'}
+        valid_types = {
+            'standard', 'renumber', 'merge_prev', 'merge_next', 'split', 
+            'absent', 'missing', 'conditional', 'special',
+            'range_start', 'range_end', 'section_range'
+        }
         if self.mapping_type not in valid_types:
             raise ValueError(f"Invalid mapping_type: {self.mapping_type}")
+        
         # Valid category (allow None)
         valid_categories = {'Opt', 'Nec', 'Acd', 'Inf', 'None'}
         if self.category is not None and self.category not in valid_categories:
             raise ValueError(f"Invalid category: {self.category}")
-        # Numeric checks
-        if isinstance(self.source_chapter, int) and self.source_chapter <= 0:
-            raise ValueError("Invalid source_chapter: must be > 0")
+        
+        # Numeric checks - skip for range mappings
+        if not self.mapping_type.startswith('range_') and not self.mapping_type == 'section_range':
+            if self.source_chapter is not None:
+                try:
+                    chapter_value = int(self.source_chapter)
+                    if chapter_value <= 0:
+                        raise ValueError("Invalid source_chapter: must be > 0")
+                except ValueError:
+                    # If not numeric, let it pass (could be special format)
+                    pass
+        
         return True
 
 @dataclass

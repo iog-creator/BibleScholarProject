@@ -1,0 +1,9 @@
+---
+description: Guidelines for acceptable Greek morphology count tolerances in NT text processing
+globs:
+  - "src/etl/morphology/etl_greek_morphology.py"
+  - "src/tvtms/greek_nt_validator.py"
+  - "tests/integration/test_greek_morphology.py"
+  - "src/etl/greek_*.py"
+alwaysApply: true
+---

@@ -6,6 +6,8 @@ import os
 import logging
 import psycopg2
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.pool import NullPool
 
 # Configure logging
 logging.basicConfig(
@@ -106,6 +108,31 @@ def get_connection_string():
     db_password = os.getenv('DB_PASSWORD', '')
     
     return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+def get_engine():
+    """
+    Get a SQLAlchemy engine for database operations.
+    
+    Returns:
+        sqlalchemy.engine.Engine: The SQLAlchemy engine
+    """
+    try:
+        # Get connection string
+        connection_string = get_connection_string()
+        
+        # Create engine
+        engine = create_engine(connection_string, poolclass=NullPool)
+        logger.info("SQLAlchemy engine created successfully")
+        
+        # Test connection
+        with engine.connect() as conn:
+            logger.info("SQLAlchemy engine connection test successful")
+        
+        return engine
+    
+    except Exception as e:
+        logger.error(f"SQLAlchemy engine creation failed: {e}")
+        raise
 
 def check_table_exists(conn, schema_name, table_name):
     """

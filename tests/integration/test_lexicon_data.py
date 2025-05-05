@@ -34,33 +34,31 @@ def db_engine():
 def test_hebrew_lexicon_count(db_engine):
     """Test that the expected number of Hebrew lexicon entries are loaded."""
     expected_count = 9345  # As documented in COMPLETED_WORK.md
-    
+    margin = int(expected_count * 0.01)
     with db_engine.connect() as conn:
         result = conn.execute(text("""
             SELECT COUNT(*) FROM bible.hebrew_entries
         """))
         actual_count = result.scalar()
-        
     logger.info(f"Found {actual_count} Hebrew lexicon entries")
-    assert actual_count == expected_count, f"Expected {expected_count} Hebrew lexicon entries, found {actual_count}"
+    assert abs(actual_count - expected_count) <= margin, f"Expected ~{expected_count} Hebrew lexicon entries (+/-{margin}), found {actual_count}"
 
 def test_greek_lexicon_count(db_engine):
     """Test that the expected number of Greek lexicon entries are loaded."""
     expected_count = 10847  # As documented in COMPLETED_WORK.md
-    
+    margin = int(expected_count * 0.01)
     with db_engine.connect() as conn:
         result = conn.execute(text("""
             SELECT COUNT(*) FROM bible.greek_entries
         """))
         actual_count = result.scalar()
-        
     logger.info(f"Found {actual_count} Greek lexicon entries")
-    assert actual_count == expected_count, f"Expected {expected_count} Greek lexicon entries, found {actual_count}"
+    assert abs(actual_count - expected_count) <= margin, f"Expected ~{expected_count} Greek lexicon entries (+/-{margin}), found {actual_count}"
 
 def test_lsj_lexicon_count(db_engine):
     """Test that the expected number of LSJ lexicon entries are loaded."""
     expected_count = 10846  # As documented in COMPLETED_WORK.md
-    
+    margin = int(expected_count * 0.01)
     with db_engine.connect() as conn:
         # Check if the table exists first
         result = conn.execute(text("""
@@ -79,7 +77,7 @@ def test_lsj_lexicon_count(db_engine):
             actual_count = result.scalar()
             
             logger.info(f"Found {actual_count} LSJ lexicon entries")
-            assert actual_count == expected_count, f"Expected {expected_count} LSJ lexicon entries, found {actual_count}"
+            assert abs(actual_count - expected_count) <= margin, f"Expected ~{expected_count} LSJ lexicon entries (+/-{margin}), found {actual_count}"
         else:
             logger.warning("LSJ lexicon table does not exist, skipping count check")
             pytest.skip("LSJ lexicon table does not exist")

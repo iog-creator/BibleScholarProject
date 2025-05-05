@@ -1,1 +1,10 @@
-﻿
+---
+description: Import structure standards for the BibleScholarProject
+globs: 
+  - "**/*.py"
+alwaysApply: false
+---
+
+# Import Structure Standards
+
+Follow proper import structure and ordering in all Python files.

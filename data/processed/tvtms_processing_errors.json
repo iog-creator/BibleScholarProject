@@ -1,0 +1,29 @@
+[
+  {
+    "type": "non_numeric_verse",
+    "row_idx": 901,
+    "target_ref": "1Ki.2:35*a-n",
+    "original": "35*a-n",
+    "cleaned": "35",
+    "subverse": null,
+    "message": "Non-numeric verse '35*a-n' in 1Ki.2:35*a-n, extracted main verse '35' and subverse 'None'"
+  },
+  {
+    "type": "non_numeric_verse",
+    "row_idx": 917,
+    "target_ref": "1Ki.2:46*a-k",
+    "original": "46*a-k",
+    "cleaned": "46",
+    "subverse": null,
+    "message": "Non-numeric verse '46*a-k' in 1Ki.2:46*a-k, extracted main verse '46' and subverse 'None'"
+  },
+  {
+    "type": "non_numeric_verse",
+    "row_idx": 647,
+    "target_ref": "Dan.4:34*a-c",
+    "original": "34*a-c",
+    "cleaned": "34",
+    "subverse": null,
+    "message": "Non-numeric verse '34*a-c' in Dan.4:34*a-c, extracted main verse '34' and subverse 'None'"
+  }
+]
