@@ -19,19 +19,26 @@ This document outlines the remaining steps before we can begin training machine 
 - Created utility modules for working with DSPy models
 - Added documentation for DSPy usage
 
+✅ **Hugging Face Integration**
+- Added Hugging Face API configuration
+- Created model selection and testing script
+- Implemented DSPy initialization with Hugging Face models
+- Created cursor rule for Hugging Face integration
+- Added test script for verifying integration
+
 ## Remaining Tasks
 
-### 1. API Integration Setup
+### 1. API Configuration Verification
 
-- [ ] **Configure LM Studio Integration**
-  - Install and configure LM Studio with appropriate models
-  - Ensure API is accessible from Python scripts
+- [ ] **Run Hugging Face Setup Script**
+  - Execute `python scripts/setup_huggingface_dspy.py`
+  - Verify model selection and access
   - Test API connectivity from BibleScholarProject environment
 
-- [ ] **API Key Management**
-  - Create secure API key storage mechanism
-  - Update .env file with API key variables 
-  - Add API key documentation to guides
+- [ ] **Test DSPy with Hugging Face**
+  - Run `python scripts/test_dspy_huggingface.py`
+  - Verify Bible verse completion functionality
+  - Test embedding generation and similarity search
 
 ### 2. Training Data Preparation
 
@@ -72,7 +79,7 @@ This document outlines the remaining steps before we can begin training machine 
 ## Execution Plan
 
 1. **Week 1: Setup and Configuration**
-   - Complete API integration
+   - Verify Hugging Face API integration
    - Finalize training data preparation
    - Set up model configurations
 
@@ -95,10 +102,29 @@ This document outlines the remaining steps before we can begin training machine 
 
 2. **Software Dependencies**
    - Latest DSPy version
-   - LM Studio installation
-   - Required Python packages
+   - Required Python packages (requests, numpy, etc.)
+   - Environment setup with appropriate permissions
 
 3. **Documentation**
    - DSPy official documentation
+   - Hugging Face API documentation
    - BibleScholarProject guides
-   - Model-specific papers and resources 
+
+## Hugging Face Models
+
+The following models are recommended for different aspects of DSPy training:
+
+### Embedding Models
+- `sentence-transformers/all-MiniLM-L6-v2` - Fast, lightweight model (384 dimensions)
+- `intfloat/e5-large-v2` - High quality embeddings (1024 dimensions)
+- `sentence-transformers/all-mpnet-base-v2` - Balance of quality and performance (768 dimensions)
+
+### Completion Models
+- `mistralai/Mistral-7B-Instruct-v0.2` - Powerful instruction-following model
+- `google/gemma-7b-it` - Google's lightweight instruction model
+- `HuggingFaceH4/zephyr-7b-beta` - Fine-tuned for instructions
+
+### Optimizer Models
+- `meta-llama/Llama-2-7b-chat-hf` - Powerful reasoning capabilities
+- `mistralai/Mistral-7B-Instruct-v0.2` - Multi-purpose usage
+- `databricks/dolly-v2-7b` - Permissive license 

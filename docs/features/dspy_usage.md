@@ -270,4 +270,73 @@ The metrics.json file should include structured metrics like:
 
 - [DSPy Documentation](https://dspy.ai/)
 - [DSPy Tutorials](https://dspy.ai/tutorials/rag/)
-- [DSPy GitHub Repository](https://github.com/stanfordnlp/dspy) 
+- [DSPy GitHub Repository](https://github.com/stanfordnlp/dspy)
+
+## Hugging Face Integration
+
+BibleScholarProject uses Hugging Face models for DSPy training and inference. We've implemented a complete integration that handles model selection, API access, and DSPy configuration.
+
+### Setup
+
+The integration requires a Hugging Face API token. Add it to your `.env` file:
+
+```
+HF_API_TOKEN=your_token_here
+```
+
+Run the setup script to configure the integration:
+
+```bash
+python scripts/setup_huggingface_dspy.py
+```
+
+This will:
+1. Test connectivity to recommended models
+2. Select the best models for your account
+3. Create configuration files for DSPy
+
+### Testing
+
+Verify the integration with the test script:
+
+```bash
+python scripts/test_dspy_huggingface.py
+```
+
+This runs several tests:
+- Basic verse completion
+- Bible question answering
+- Embedding generation and similarity
+
+### Model Categories
+
+We use three types of models:
+
+1. **Embedding Models** - Generate vector embeddings for text
+   - Default: `sentence-transformers/all-MiniLM-L6-v2`
+   - Used for semantic search and retrieval
+
+2. **Completion Models** - Text generation and instruction following
+   - Default: `mistralai/Mistral-7B-Instruct-v0.2`
+   - Used for DSPy module execution 
+
+3. **Optimizer Models** - Optimize DSPy programs
+   - Default: `meta-llama/Llama-2-7b-chat-hf`
+   - Used for trace optimization
+
+### Usage in Code
+
+Import the initialization module in your scripts:
+
+```python
+from src.utils.dspy_hf_init import initialize_dspy
+
+# Initialize with Hugging Face models
+initialize_dspy()
+
+# Now use DSPy as normal
+import dspy
+module = dspy.Predict(MySignature)
+```
+
+For more details, see the [Hugging Face DSPy Integration](../.cursor/rules/features/huggingface_dspy_integration.mdc) rule. 

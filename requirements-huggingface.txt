@@ -1,0 +1,20 @@
+# Requirements for Hugging Face DSPy integration
+
+# Base requirements
+requests>=2.28.0
+python-dotenv>=1.0.0
+numpy>=1.22.0
+pandas>=1.5.0
+
+# DSPy
+dspy-ai>=2.3.5
+torch>=2.0.0
+
+# Hugging Face
+huggingface-hub>=0.20.0
+transformers>=4.36.0
+sentence-transformers>=2.3.0
+
+# Evaluation and metrics
+scikit-learn>=1.0.0
+datasets>=2.14.0 
