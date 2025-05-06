@@ -1,5 +1,311 @@
 ---
-description:
-globs:
+description: provides guidelines for working with the DSPy training data and collection system in the BibleScholarProject
+globs: 
 alwaysApply: false
 ---
+# DSPy Usage Guide
+
+## Purpose
+This rule provides guidelines for working with the DSPy training data and collection system in the BibleScholarProject. DSPy is used to create high-quality training examples for language models to answer Bible-related questions, analyze theological terms, and interact with the project's API and web interfaces.
+
+## DSPy Collection System
+
+The project includes an automated DSPy data collection system that:
+
+1. Tracks changes to the Bible database using a state hash
+2. Automatically regenerates training data when the database changes
+3. Provides hooks for triggering collection from ETL and data loading scripts
+4. Logs user interactions for real-world training data
+5. Integrates with API and web application via decorators
+
+### Key Files
+- `src/utils/dspy_collector.py` - Core collection system
+- `scripts/generate_dspy_training_data.py` - Main generation script
+- `scripts/refresh_dspy_data.py` - Command-line utility for status/refresh
+- `scripts/enhance_dspy_training.py` - Script for enhancing training data
+- `scripts/log_user_interactions.py` - User interaction logging utilities
+- `data/processed/dspy_training_data/` - Generated datasets
+
+### Data Files
+- `qa_dataset.jsonl` - Question-answering examples
+- `theological_terms_dataset.jsonl` - Theological term analysis
+- `translation_dataset.jsonl` - Translation comparison
+- `web_interaction_dataset.jsonl` - API interaction examples
+- `user_interactions_dataset.jsonl` - Real user questions/solutions
+- `problem_solution_dataset.jsonl` - Problem-solving examples
+
+## Usage Guidelines
+
+### Checking Data Status
+
+Before making changes to the codebase, check the current state of DSPy training data:
+
+```bash
+python scripts/refresh_dspy_data.py status
+# Or with Makefile
+make dspy-status
+```
+
+This shows a hash representing the current database state, last update timestamp, and available data files.
+
+### Refreshing Data
+
+After making significant changes to Bible data:
+
+```bash
+python scripts/refresh_dspy_data.py refresh
+# Or with Makefile
+make dspy-refresh
+```
+
+### Logging User Interactions
+
+The system captures real user interactions through:
+
+1. **API Decorators**: Applied to API endpoints in `src/api/lexicon_api.py`
+2. **Web Decorators**: Applied to web routes in `src/web_app.py`
+3. **Manual Logging**: Using functions in `scripts/log_user_interactions.py`
+
+To manually log interactions:
+
+```python
+# Log a question and answer
+from scripts.log_user_interactions import log_question_answer
+log_question_answer(
+    question="What is the meaning of Elohim?", 
+    answer="Elohim is the Hebrew word for God or gods",
+    category="theological_term"
+)
+
+# Log a problem and solution
+from scripts.log_user_interactions import log_problem_solution
+log_problem_solution(
+    problem="How do I search for Hebrew words?",
+    solution="Use the /api/lexicon/search endpoint with lang=hebrew",
+    code_example="import requests\n\nresponse = requests.get(...)"
+)
+```
+
+## Integration with ETL Processes
+
+When creating new ETL processes or Bible loading scripts, add a hook to trigger DSPy collection:
+
+```python
+from src.utils.dspy_collector import trigger_after_verse_insertion
+
+# After inserting Bible verses
+with conn.cursor() as cur:
+    # Insert verses
+    cur.execute(...)
+    
+# Trigger DSPy collection
+trigger_after_verse_insertion(conn, translation_code)
+```
+
+## Best Practices
+
+1. **Question-Answer Pairs**: When adding examples, ensure questions are clear and specific
+2. **Code Examples**: Include realistic code examples for API usage
+3. **Problem-Solution Format**: Structure examples as problems with solutions
+4. **Theological Terms**: Ensure theological term analysis includes lexical meaning and contextual usage
+5. **User Interaction Logging**: Apply decorators to all new API endpoints and web routes
+6. **Manual Collection**: Use `make dspy-log-interactions` to capture important interactions
+
+## Example Usage
+
+To add a new question-answer example:
+
+```python
+# In scripts/enhance_dspy_training.py
+def add_qa_examples():
+    examples = [
+        {
+            "context": "In the beginning God created the heavens and the earth.",
+            "question": "Who created the heavens and the earth?",
+            "answer": "God",
+            "metadata": {
+                "book": "Genesis",
+                "chapter": 1,
+                "verse": 1,
+                "type": "factual"
+            }
+        },
+        # More examples...
+    ]
+    
+    # Add examples to qa_dataset.jsonl
+    add_examples_to_jsonl(examples, "qa_dataset.jsonl")
+```
+
+## Troubleshooting
+
+If DSPy collection isn't working:
+
+1. **Database Connection**: Ensure database connection is established correctly
+2. **File Permissions**: Check that the script has write permissions to the data directory
+3. **Import Issues**: Ensure all necessary imports are available
+4. **Logging**: Check log files for errors
+5. **Decorators**: Verify decorators are properly applied to API endpoints and web routes
+
+If the web or API integration isn't logging interactions:
+
+1. **Server Configuration**: Ensure servers are running with the correct modules
+2. **Import Paths**: Check that import paths are correct in the decorator application
+3. **Directory Structure**: Verify the DSPy training data directory exists and is writable
+
+## Data Format for DSPy
+
+All DSPy training data should follow these format standards:
+
+1. **JSONL Format**: One JSON object per line
+2. **Required Fields**: Each example must include input/output or equivalent
+3. **Metadata**: Add context information where available
+4. **Clean Text**: Avoid HTML tags or escape sequences
+
+## Commands for DSPy Management
+
+Use these commands to manage the DSPy training data:
+
+```bash
+# Check the status of DSPy training data
+make dspy-status
+
+# Refresh all DSPy training data
+make dspy-refresh
+
+# Generate DSPy training data
+make dspy-collect
+
+# Enhance DSPy data with specialized examples
+make dspy-enhance
+
+# Manage user interaction logging
+make dspy-log-interactions
+```
+
+## Guidelines for User Interaction Collection
+
+1. **Respect Privacy**: Remove any personal or identifying information
+2. **Focus on Quality**: Prioritize high-quality, informative interactions
+3. **Include Context**: Add relevant context to make examples self-contained
+4. **Categorize Properly**: Assign appropriate categories to questions/problems
+5. **Include Diagnostic Steps**: For problem-solution pairs, include diagnostic steps
+
+## Common Issues and Solutions
+
+If DSPy collection isn't working as expected:
+
+1. **Database Changes Not Triggering Collection**: Ensure changes affect tables tracked in the state hash
+2. **Missing Files**: Run `make dspy-refresh` to regenerate all files
+3. **Logging Not Working**: Check permissions on the data directory
+4. **Duplicate Entries**: Run deduplication script or manually remove duplicates
+5. **Formatting Issues**: Use the enhancement script to fix formatting problems
+
+Remember to regularly check and update DSPy training data to ensure it remains relevant and high-quality.
+
+## Training Data Format
+
+The DSPy system generates the following JSONL data files:
+
+1. `qa_dataset.jsonl` - Question-answering pairs about Bible verses
+2. `theological_terms_dataset.jsonl` - Hebrew theological term analysis
+3. `translation_dataset.jsonl` - Parallel translations for cross-language comparison
+4. `summarization_dataset.jsonl` - Bible passage summarization examples
+5. `ner_dataset.jsonl` - Named entity recognition for Bible text
+6. `web_interaction_dataset.jsonl` - API usage examples
+7. `web_ui_interaction_dataset.jsonl` - Web interface interaction examples
+8. `problem_solution_dataset.jsonl` - Problem-solving examples
+9. `evaluation_metrics.jsonl` - Custom DSPy evaluation metrics
+
+## Using DSPy with the Bible Data
+
+### Basic Setup
+```python
+import dspy
+import json
+from pathlib import Path
+
+# Load examples from JSONL
+def load_examples(filename):
+    examples = []
+    data_path = Path('data/processed/dspy_training_data') / filename
+    with open(data_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('//') or not line.strip():
+                continue
+            examples.append(dspy.Example(**json.loads(line)))
+    return examples
+
+# Load QA examples
+qa_examples = load_examples('qa_dataset.jsonl')
+```
+
+### Creating a QA Module
+```python
+# Define a signature for Bible QA
+class BibleQA(dspy.Signature):
+    """Answer questions about Bible verses."""
+    context = dspy.InputField(desc="The Bible verse or passage")
+    question = dspy.InputField(desc="Question about the verse")
+    answer = dspy.OutputField(desc="Answer to the question")
+
+# Create a module
+class BibleQAModule(dspy.Module):
+    def __init__(self):
+        super().__init__()
+        self.qa_model = dspy.ChainOfThought(BibleQA)
+    
+    def forward(self, context, question):
+        return self.qa_model(context=context, question=question)
+```
+
+### Optimizing with DSPy
+```python
+# Define a metric
+class TheologicalAccuracy(dspy.Metric):
+    def __call__(self, example, prediction):
+        # Simplified evaluation - in practice, use more sophisticated metrics
+        return float(prediction.answer in example.answer)
+
+# Optimize the module
+metric = TheologicalAccuracy()
+optimizer = dspy.teleprompt.SIMBA(metric=metric)
+trainset = qa_examples[:80]  # Use part of the data for training
+devset = qa_examples[80:]    # Use rest for evaluation
+
+# Run optimization
+optimized_module = optimizer.optimize(
+    BibleQAModule(),
+    trainset=trainset,
+    devset=devset,
+    optuna_trials=20
+)
+
+# Save the optimized module
+optimized_module.save("models/optimized_bible_qa.dspy")
+```
+
+## Triggering Collection from Scripts
+
+If you're adding new Bible translations or making significant changes to theological term data, you should trigger the DSPy collection system:
+
+```python
+from src.utils import dspy_collector
+from src.database.connection import get_connection
+
+def after_loading_translation(translation_id):
+    """Call after loading a new translation."""
+    conn = get_connection()
+    try:
+        # Trigger DSPy collection
+        dspy_collector.trigger_after_verse_insertion(conn, translation_id)
+    finally:
+        conn.close()
+```
+
+## Additional Resources
+
+- [DSPy Documentation](mdc:https:/dspy.ai)
+- [DSPy Tutorials](mdc:https:/dspy.ai/tutorials/rag)
+- [BibleScholarProject Data README](mdc:data/processed/dspy_training_data/README.md)
+

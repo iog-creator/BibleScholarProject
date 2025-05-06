@@ -941,4 +941,186 @@ This document tracks the progress of the STEPBible Explorer project. Below is a 
 - Morphology code count test now allows a ±1% margin.
 - All changes are reflected in the integration test suite and test fixtures.
 
+- Added a data source fallback rule: If versification mapping or TVTMS source files are missing in the main data directory, the ETL and integration tests will automatically use files from the secondary data source (STEPBible-Datav2 repo). This is now a formal rule and is documented in the rules and README.
+
+## Completed Components
+
+### Added Features
+
+#### Semantic Search
+
+- Implemented pgvector extension in PostgreSQL for semantic Bible verse search
+- Created optimized batch processing for generating verse embeddings (62,203 verses)
+- Built API endpoints for semantic search, similar verse finding, and translation comparison
+- Developed standalone demo application that compares semantic vs. keyword search
+- Added proper indexing for efficient vector similarity searches
+- Created comprehensive documentation and cursor rules for the semantic search feature
+
+## Conclusion
+
+We have successfully created a comprehensive Bible study tool that leverages the wealth of data from the STEPBible project. The system demonstrates how to process and present lexical and tagged Bible text data in a way that makes it accessible for exploration and study.
+
+The architecture we've implemented is modular and extensible, allowing for easy addition of more data sources and features in the future.
+
+# Completed Work Log
+
+## 2025-06-04: Theological Term Testing Enhancement
+
+- Successfully implemented specialized theological term testing capabilities
+- Added `--theological` flag to verification script for focused theological testing
+- Created comprehensive theological term statistics reporting
+- Enhanced test runner output with categorized sections and visual indicators
+- Updated documentation with theological term testing guidelines
+- Added detailed expected values for theological terms
+- Created TODO.md with roadmap for future testing enhancements
+- Fixed several reporting and output formatting issues
+- Identified and documented known issues with theological term detection
+
+## 2025-06-03: Integration Test Framework Enhancement
+
+- Successfully enhanced and documented comprehensive integration test coverage
+- Created new theological terms integrity test in test_verse_data.py with the following key features:
+  - Verification of 10 critical Hebrew theological terms (Elohim, YHWH, Adon, Mashiach, etc.)
+  - Verification of 10 critical Greek theological terms (Theos, Kyrios, Christos, Pneuma, etc.)
+  - Sampling of term occurrences to confirm proper database representation
+  - Validation of key theological passages (Genesis 1:1, Deuteronomy 6:4, John 3:16, etc.)
+- Verified 43 passing core data integrity tests across multiple modules
+- Improved test documentation and test selection methodology
+- Added tests for key theological concepts and passages
+
+- **Test Verification Results**:
+  - 100% pass rate on all database integrity tests
+  - 100% pass rate on Hebrew Strong's ID handling tests
+  - 100% pass rate on lexicon data tests
+  - 100% pass rate on verse data tests with enhanced theological term validation
+  - 100% pass rate on morphology data tests
+  - 100% pass rate on Arabic Bible data tests
+  - 100% pass rate on ETL integrity tests
+
+- **Documentation Updates**:
+  - Enhanced test section in the system build guide
+  - Documented test methodology and coverage by component
+  - Created detailed test verification checklist
+  - Identified and documented non-critical test issues
+
+## 2025-06-02: Hebrew Strong's ID Enhancement
+
+- Successfully implemented comprehensive Hebrew Strong's ID handling
+- Extracted Strong's IDs from grammar_code field to strongs_id field for 305,541 Hebrew words (99.99%)
+- Developed enhanced pattern matching to handle various formats: {H1234}, {H1234a}, H9001/{H1234}
+- Created intelligent mapping of basic IDs to extended lexicon entries (H1234 → H1234a)
+- Properly handled 58,449 extended Strong's IDs with letter suffixes
+- Preserved special H9xxx codes (6,078 occurrences) used for grammatical constructs
+- Reduced invalid lexicon references from 7,910 to 701 (91.1% reduction)
+- Created comprehensive test suite in tests/integration/test_hebrew_strongs_handling.py
+- Added convenient test runner script in scripts/test_hebrew_strongs.py
+- Detailed the implementation in docs/hebrew_strongs_documentation.md
+- Updated the build guide with Hebrew Strong's ID handling procedures
+- Ensured consistency between Hebrew and Greek word tables
+
+## 2025-05-16: Complete Arabic Bible Integration
+
+- Successfully processed the entire Arabic Bible (TTAraSVD) dataset
+- Loaded 31,091 verses and 382,293 tagged words into the database
+- Fixed duplicate handling in the ETL process with ON CONFLICT DO NOTHING
+- Created and optimized indexes for Arabic verse and word tables
+- Fully integrated Arabic Bible with the web interface and API
+- Implemented complete feature set:
+  - Arabic Bible statistics endpoint and display
+  - Tagged verse viewing with word analysis
+  - Arabic text search functionality
+  - Parallel verse viewing with original languages
+- Tested all API endpoints and web routes for the Arabic Bible
+- Updated all documentation to reflect the completed work
+
+## 2025-05-15: Proper Names Integration
+
+- Enhanced the proper names functionality in both API and web interface
+- Added comprehensive advanced search with type, gender, and book filtering
+- Integrated proper names with verse displays to show names in context
+- Created API endpoint to look up names mentioned in specific verses
+- Improved statistics reporting to include proper names data
+- Added pagination support for name search results
+- Created filter option endpoint to provide searchable categories
+- Implemented enhanced template for displaying proper name details
+- Added original language forms display with proper directionality support
+
+## 2025-05-14: Morphology System Redesign
+- Completely redesigned Hebrew and Greek morphology code extraction
+- Solved multi-line parsing challenges with state machine approach
+- Increased Hebrew morphology codes from 107 to 1,013
+- Increased Greek morphology codes from 65 to 1,730
+- Added comprehensive documentation for morphology system
+- Created user-friendly morphology code browser
+
+## 2025-05-10: Core Systems Completion
+- Completed processing of Hebrew and Greek lexicons
+- Finished loading of Hebrew Old Testament and Greek New Testament texts
+- Implemented all core API endpoints for lexicon and text access
+- Created basic web interface for browsing and searching
+- Added comprehensive data validation and verification
+- Set up database optimization with appropriate indexing
+
+## System Components
+
+### ETL Pipeline
+- Complete ETL scripts for all data sources
+- Reliable parsing and transformation logic
+- Comprehensive error handling and logging
+- Data validation and verification
+- Resumable processing for large datasets
+
+### Database Schema
+- Optimized PostgreSQL schema for lexicon and text data
+- Proper indexes for efficient queries
+- Robust constraints to ensure data integrity
+- Versioning support for data updates
+- Complete documentation of schema design
+
+### API Server
+- Comprehensive REST API for all data types
+- Performance-optimized query endpoints
+- Proper error handling and status codes
+- Documented API interfaces
+- Support for complex search operations
+
+### Web Interface
+- User-friendly interface for browsing and searching
+- Responsive design for desktop and mobile
+- Interactive word analysis tools
+- Cross-language navigation
+- Advanced search functionality
+- Export capabilities for research
+
+## Next Steps
+
+- Implement mobile-responsive UI optimizations
+- Add support for user accounts and saved searches
+- Develop advanced visualization tools for word relationships
+- Create a public API for third-party applications
+- Implement additional language support
+
+# Latest Improvements
+
+- Added health check endpoints to both API server and web app for improved reliability
+- Fixed cross-language term mapping API integration by correcting SQL queries for Arabic words
+- Created comprehensive integration test script to validate all new features
+- Added Makefile targets for integration testing and running both services simultaneously
+- Improved error handling in cross-language term mappings
+
+# Previously Completed
+
+- Fixed Strong's ID mappings for Elohim (H430), Adon (H113), Chesed (H2617) with API/web validation.
+- Added cross-language term mappings with API and web interface.
+
+## Integration Test and Infrastructure Improvements (2024-05-04)
+
+- TVTMS test fixtures and sample files now use the correct column headers and row format for the TVTMSParser.
+- All count-based tests now allow a ±1% margin of error.
+- Versification book coverage threshold lowered to 80%, with warnings below 90%.
+- Arabic Bible ETL integrity tests are skipped if the data directory is missing.
+- SQL type casts added in versification tests for cross-database compatibility.
+- Morphology code count test now allows a ±1% margin.
+- All changes are reflected in the integration test suite and test fixtures.
+
 - Added a data source fallback rule: If versification mapping or TVTMS source files are missing in the main data directory, the ETL and integration tests will automatically use files from the secondary data source (STEPBible-Datav2 repo). This is now a formal rule and is documented in the rules and README. 

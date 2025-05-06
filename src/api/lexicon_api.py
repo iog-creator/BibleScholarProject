@@ -44,6 +44,10 @@ ensure_directories()
 from src.api.cross_language_api import api_blueprint as cross_language_api
 app.register_blueprint(cross_language_api, url_prefix='/api/cross_language')
 
+# Register vector search API blueprint
+from src.api.vector_search_api import vector_search_api
+app.register_blueprint(vector_search_api, url_prefix='/api')
+
 # Database connection
 def get_db_connection():
     """

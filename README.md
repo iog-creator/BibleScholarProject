@@ -12,6 +12,7 @@ A comprehensive Bible study tool providing access to original language lexicons,
 - API for programmatic access to Bible data
 - Web interface for interactive Bible study
 - DSPy training data collection for AI model training
+- Semantic search capabilities powered by PostgreSQL's pgvector extension
 
 ## Components
 
@@ -139,6 +140,51 @@ make dspy-log-interactions
 
 See the [DSPy Training documentation](docs/DSPY_TRAINING.md) for more details.
 
+### Semantic Search
+
+The BibleScholarProject now includes semantic search capabilities powered by PostgreSQL's pgvector extension. This allows users to:
+
+- Search for Bible verses by meaning rather than just keywords
+- Find verses that are conceptually similar to a reference verse
+- Compare different translations using vector similarity
+
+The implementation processes over 62,000 Bible verses and generates 768-dimensional embeddings using LM Studio's embedding model. Searches use cosine similarity to find the most semantically relevant results.
+
+See the [Semantic Search documentation](docs/SEMANTIC_SEARCH.md) for detailed implementation and usage information.
+
+### Comprehensive Search
+
+The BibleScholarProject features a comprehensive search system that integrates all database resources:
+
+- **Multi-resource semantic search** across verses, lexicons, proper names, and cross-language mappings
+- **Theological term identification** with cross-language equivalents
+- **Proper name network** exploration with relationships and verse occurrences
+- **Arabic text integration** alongside Hebrew, Greek, and English translations
+- **Cross-language mapping** to find equivalent concepts across language boundaries
+
+The comprehensive search API provides advanced endpoints:
+
+```bash
+# Semantic search with cross-language results
+curl "http://localhost:5000/api/comprehensive/vector-search?q=God%20created%20the%20heavens&cross_language=true"
+
+# Search for theological terms
+curl "http://localhost:5000/api/comprehensive/theological-term-search?term=elohim&language=hebrew"
+
+# Search for biblical names and relationships
+curl "http://localhost:5000/api/comprehensive/name-search?name=Moses&include_relationships=true"
+```
+
+See the [Comprehensive Search documentation](docs/COMPREHENSIVE_SEMANTIC_SEARCH.md) for implementation details.
+
+#### Demo Application
+
+A standalone demo application is included to showcase the semantic search capabilities:
+```bash
+python -m src.utils.vector_search_demo
+```
+This runs a simple web interface on http://localhost:5050 that compares semantic search with traditional keyword search.
+
 ## Development
 
 ### Project Structure
@@ -153,16 +199,19 @@ BibleScholarProject/
 ├── scripts/                 # Scripts for data processing and utilities
 ├── src/                     # Source code
 │   ├── api/                 # API endpoints
+│   │   └── comprehensive_search/ # Comprehensive search API
 │   ├── database/            # Database access
 │   ├── etl/                 # ETL pipeline
 │   │   ├── morphology/      # Morphology processing
 │   │   └── names/           # Name entity processing
 │   ├── tvtms/               # Text-verse-to-morphology-state mapping
 │   └── utils/               # Utility functions
-│       └── dspy_collector.py # DSPy collection system
+│       ├── dspy_collector.py # DSPy collection system
+│       └── vector_search_utils.py # Vector search utilities
 ├── templates/               # Web templates
 └── tests/                   # Tests
     ├── integration/         # Integration tests
+    │   └── test_comprehensive_search/ # Comprehensive search tests
     └── unit/                # Unit tests
 ```
 

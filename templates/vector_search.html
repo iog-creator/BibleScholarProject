@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Vector Semantic Search{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-4">
+        <div class="col-12">
+            <h1>Vector Semantic Search</h1>
+            <p class="lead">Search for Bible passages by semantic meaning using AI embeddings</p>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form action="/vector-search" method="get">
+                        <div class="form-group mb-3">
+                            <label for="search-query">Search query:</label>
+                            <input type="text" class="form-control" id="search-query" name="q" placeholder="Enter a phrase, concept, or theme..." value="{{ query }}" required>
+                            <small class="form-text text-muted">Try searching for concepts like "love your enemies", "faith and works", "kingdom of heaven", etc.</small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="translation">Translation:</label>
+                            <select class="form-control" id="translation" name="translation">
+                                <option value="KJV" {% if translation == 'KJV' %}selected{% endif %}>King James Version (KJV)</option>
+                                <option value="ASV" {% if translation == 'ASV' %}selected{% endif %}>American Standard Version (ASV)</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary" type="submit">Search</button>
+                    </form>
+                </div>
+            </div>
+            
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+            
+            {% if results %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Search Results for "{{ results.query }}" in {{ results.translation }}</h5>
+                </div>
+                <div class="card-body">
+                    <p>Found {{ results.total_matches }} semantically similar verses.</p>
+                    
+                    <div class="list-group mt-3">
+                        {% for result in results.results %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">{{ result.reference }}</h5>
+                                <span class="badge bg-primary rounded-pill">{{ result.similarity }}% similarity</span>
+                            </div>
+                            
+                            {% if result.context.previous %}
+                            <p class="text-muted small mb-1">{{ result.context.previous }}</p>
+                            {% endif %}
+                            
+                            <p class="mb-1"><strong>{{ result.verse_text }}</strong></p>
+                            
+                            {% if result.context.next %}
+                            <p class="text-muted small mb-0">{{ result.context.next }}</p>
+                            {% endif %}
+                            
+                            <div class="mt-2">
+                                <a href="/similar-verses?book={{ result.book_name }}&chapter={{ result.chapter_num }}&verse={{ result.verse_num }}&translation={{ result.translation_source }}" class="btn btn-sm btn-outline-secondary">Find similar verses</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if results.metadata.book_distribution %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Book Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for book, count in results.metadata.book_distribution.items() %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ book }}
+                            <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -24,6 +24,12 @@ from api.external_resources_api import external_resources_bp
 # Import the cross-language API blueprint
 from src.api.cross_language_api import api_blueprint as cross_language_api
 
+# Import the new API
+from src.api.vector_search_api import vector_search_api
+
+# Import comprehensive search API
+from src.api.comprehensive_search import comprehensive_search_api
+
 # Load environment variables
 load_dotenv()
 
@@ -50,6 +56,12 @@ app.register_blueprint(external_resources_bp)
 
 # Register the cross-language API blueprint
 app.register_blueprint(cross_language_api, url_prefix='/api/cross_language')
+
+# Register the new API
+app.register_blueprint(vector_search_api, url_prefix='/api')
+
+# Register the comprehensive search API
+app.register_blueprint(comprehensive_search_api, url_prefix='/api/comprehensive')
 
 # API Base URL - use local host if running on same server
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:5000')
@@ -1121,6 +1133,73 @@ def log_web_request(f):
             return f(*args, **kwargs)
     
     return decorated_function
+
+@app.route('/vector-search')
+def vector_search_page():
+    """
+    Display vector-based semantic search form and results.
+    """
+    query = request.args.get('q', '')
+    translation = request.args.get('translation', 'KJV')
+    
+    results = None
+    error = None
+    
+    if query:
+        try:
+            response = requests.get(f"{API_BASE_URL}/api/vector-search",
+                                  params={'q': query, 'translation': translation, 'limit': 20})
+            
+            if response.status_code == 200:
+                results = response.json()
+            else:
+                error = response.json().get('error', 'Unknown error')
+                
+        except Exception as e:
+            logger.error(f"Error in vector search: {e}")
+            error = f"An error occurred: {str(e)}"
+    
+    return render_template('vector_search.html',
+                          query=query,
+                          translation=translation,
+                          results=results,
+                          error=error)
+
+@app.route('/similar-verses')
+def similar_verses_page():
+    """
+    Display similar verses page.
+    """
+    book = request.args.get('book', '')
+    chapter = request.args.get('chapter', '')
+    verse = request.args.get('verse', '')
+    translation = request.args.get('translation', 'KJV')
+    
+    results = None
+    error = None
+    
+    if book and chapter and verse:
+        try:
+            response = requests.get(f"{API_BASE_URL}/api/similar-verses",
+                                   params={'book': book, 'chapter': chapter, 'verse': verse, 
+                                           'translation': translation, 'limit': 20})
+            
+            if response.status_code == 200:
+                results = response.json()
+            else:
+                error = response.json().get('error', 'Unknown error')
+                
+        except Exception as e:
+            logger.error(f"Error finding similar verses: {e}")
+            error = f"An error occurred: {str(e)}"
+    
+    return render_template('similar_verses.html',
+                          book=book,
+                          chapter=chapter,
+                          verse=verse,
+                          translation=translation,
+                          results=results,
+                          error=error)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001) 

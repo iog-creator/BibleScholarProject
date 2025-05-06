@@ -1,0 +1,124 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+type: always
+title: pgVector Semantic Search
+description: Guidelines for working with pgvector semantic search functionality in the BibleScholarProject
+globs:
+  - "src/utils/generate_verse_embeddings.py"
+  - "src/utils/test_vector_search.py" 
+  - "src/utils/vector_search_demo.py"
+  - "src/api/vector_search_api.py"
+alwaysApply: false
+---
+
+# pgVector Semantic Search Implementation
+
+This guide outlines the implementation of semantic search capabilities in the BibleScholarProject using PostgreSQL's pgvector extension.
+
+## Core Components
+
+1. **Database Structure**
+   - The extension `vector` must be enabled in PostgreSQL
+   - Embeddings are stored in `bible.verse_embeddings` table with 768-dimensional vectors
+   - Includes columns: `verse_id`, `book_name`, `chapter_num`, `verse_num`, `translation_source`, `embedding`
+   - Uses the IVFFlat index type for efficient similarity search
+
+2. **Embedding Generation** (`src/utils/generate_verse_embeddings.py`)
+   - Uses LM Studio API with `text-embedding-nomic-embed-text-v1.5@q8_0` model
+   - Processes verses in batches of 50 for optimal GPU utilization
+   - Stores embeddings in the database with proper vector formatting
+   - Creates appropriate index on the verse_embeddings table
+
+3. **API Endpoints** (`src/api/vector_search_api.py`)
+   - `/api/vector-search`: Search for verses semantically related to a query
+   - `/api/similar-verses`: Find verses similar to a specified verse
+   - `/api/compare-translations`: Compare translations using vector similarity
+
+4. **Demo Application** (`src/utils/vector_search_demo.py`)
+   - Simple Flask application running on port 5050
+   - Provides web interface for comparing semantic vs. keyword search
+   - Includes API endpoints for both search types
+
+## Testing and Usage
+
+### Python Scripts
+
+Use the standalone test scripts to verify vector search functionality:
+```python
+python -m src.utils.test_vector_search
+python test_pgvector_search.py  # Custom test script
+```
+
+### Web Demo Application
+
+Run the standalone demo application:
+```python
+python -m src.utils.vector_search_demo
+```
+
+Access the web interface at http://127.0.0.1:5050
+
+### API Testing with PowerShell
+
+When testing with PowerShell, use these approaches:
+
+```powershell
+# Test API endpoints with Invoke-WebRequest (preferred)
+$response = Invoke-WebRequest -Uri 'http://127.0.0.1:5050/search/vector?q=God created the heavens and the earth&translation=KJV&limit=3' -UseBasicParsing
+$response.Content
+
+# Test with headers for JSON response
+$headers = @{ "Accept" = "application/json" }
+Invoke-WebRequest -Uri 'http://127.0.0.1:5050/search/vector?q=query&translation=KJV' -Headers $headers -UseBasicParsing
+```
+
+### LM Studio API Testing
+
+Ensure LM Studio is running with the correct embedding model:
+
+```powershell
+# Test LM Studio API using PowerShell
+$headers = @{ "Content-Type" = "application/json" }
+$body = @{ 
+    model = "text-embedding-nomic-embed-text-v1.5@q8_0"
+    input = "Some text to embed" 
+} | ConvertTo-Json
+Invoke-WebRequest -Uri 'http://127.0.0.1:1234/v1/embeddings' -Method Post -Headers $headers -Body $body -UseBasicParsing
+```
+
+## Implementation Details
+
+1. **Vector Format for PostgreSQL**
+   - Use square brackets format for vector arrays
+   - Properly cast vectors to PostgreSQL vector type with `::vector`
+   - Example: `embedding_array = "[0.1, 0.2, ...]"` then use `%s::vector` in SQL
+
+2. **Search Algorithms**
+   - Using cosine similarity for semantic search with `<=>` operator
+   - Optimizing with proper indexing for faster search
+
+3. **Performance**
+   - Batch processing with 50 verses per batch
+   - Using GPU acceleration via LM Studio
+   - Created IVFFlat index with 100 lists for optimal search performance
+
+## Troubleshooting
+
+1. **LM Studio Connection Issues**
+   - Ensure LM Studio is running at http://127.0.0.1:1234
+   - Verify the `text-embedding-nomic-embed-text-v1.5@q8_0` model is loaded
+   - Check LM Studio API errors with direct API calls
+
+2. **Search Query Issues**
+   - Verify the correct book names (e.g., "Psalms" not "Psalm")
+   - Check database connectivity and table existence
+   - Confirm embedding vectors are properly formatted
+   
+3. **PowerShell Output Issues**
+   - Use `-UseBasicParsing` flag with Invoke-WebRequest
+   - Use ConvertTo-Json for formatting JSON responses
+   - Pipe to Select-Object -ExpandProperty Content for cleaner output
+

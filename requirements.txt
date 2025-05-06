@@ -31,4 +31,8 @@ tqdm>=4.66.0
 typing-extensions>=4.8.0
 
 # Web Framework
-flask>=2.3.0 
+flask>=2.3.0
+
+# Vector embeddings
+sentence-transformers>=2.2.2
+numpy>=1.23.0 

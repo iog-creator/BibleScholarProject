@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Similar Verses{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-4">
+        <div class="col-12">
+            <h1>Similar Verses</h1>
+            <p class="lead">Find verses semantically similar to a reference verse</p>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form action="/similar-verses" method="get">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="book" class="form-label">Book:</label>
+                                <input type="text" class="form-control" id="book" name="book" placeholder="e.g., John" value="{{ book }}" required>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <label for="chapter" class="form-label">Chapter:</label>
+                                <input type="number" class="form-control" id="chapter" name="chapter" min="1" placeholder="e.g., 3" value="{{ chapter }}" required>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <label for="verse" class="form-label">Verse:</label>
+                                <input type="number" class="form-control" id="verse" name="verse" min="1" placeholder="e.g., 16" value="{{ verse }}" required>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label for="translation" class="form-label">Translation:</label>
+                                <select class="form-control" id="translation" name="translation">
+                                    <option value="KJV" {% if translation == 'KJV' %}selected{% endif %}>King James Version (KJV)</option>
+                                    <option value="ASV" {% if translation == 'ASV' %}selected{% endif %}>American Standard Version (ASV)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" type="submit">Find Similar</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+            
+            {% if results %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Source Verse: {{ results.source_verse.reference }} ({{ results.source_verse.translation }})</h5>
+                </div>
+                <div class="card-body">
+                    <blockquote class="blockquote">
+                        <p class="mb-0">{{ results.source_verse.text }}</p>
+                    </blockquote>
+                    
+                    <hr class="my-4">
+                    
+                    <h5>{{ results.total_matches }} Similar Verses</h5>
+                    
+                    <div class="list-group mt-3">
+                        {% for verse in results.similar_verses %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">{{ verse.reference }}</h5>
+                                <span class="badge bg-primary rounded-pill">{{ verse.similarity }}% similarity</span>
+                            </div>
+                            
+                            <p class="mb-0">{{ verse.verse_text }}</p>
+                            
+                            <div class="mt-2">
+                                <a href="/similar-verses?book={{ verse.book_name }}&chapter={{ verse.chapter_num }}&verse={{ verse.verse_num }}&translation={{ verse.translation_source }}" class="btn btn-sm btn-outline-secondary">Make this the source verse</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
