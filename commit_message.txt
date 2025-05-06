@@ -1,0 +1,16 @@
+feat(semantic-search): Implement comprehensive semantic search with pgvector
+
+Add complete semantic search infrastructure using PostgreSQL's pgvector extension:
+
+- Implement pgvector-based verse embeddings for semantic similarity search
+- Create comprehensive search API with cross-language functionality
+- Add theological term vector search capabilities
+- Implement proper name relationship search
+- Add integration tests for comprehensive search features
+- Create documentation for pgvector usage and comprehensive search
+- Update Web UI with new semantic search features
+- Add cursor rules for pgvector and comprehensive search implementation
+
+This change enables searching Biblical texts by meaning rather than keywords,
+finding similar verses across translations, and exploring theological concepts
+across language boundaries. 
