@@ -1,0 +1,58 @@
+# Documentation Usage Guidelines
+
+## Finding Documentation
+
+All project documentation is centralized in the `docs/` directory:
+
+1. Start with `docs/README.md` for a comprehensive index of all documentation
+2. For specific topics, consult the relevant documentation file:
+   - API endpoints: `docs/API_REFERENCE.md`
+   - Database schema: `docs/DATABASE_SCHEMA.md`
+   - Development rules: `docs/rules/README.md`
+
+## Documenting Code
+
+When writing or modifying code, follow these documentation guidelines:
+
+1. **Module Documentation**:
+   - Include docstrings for all modules explaining their purpose
+   - List key functions and classes at the top of the file
+
+2. **Function Documentation**:
+   - Document all parameters, return values, and exceptions
+   - Include examples for complex functions
+
+3. **Class Documentation**:
+   - Document the purpose of the class and its main methods
+   - Document class attributes and their expected types
+
+## Referencing Documentation
+
+When referencing documentation in code comments:
+
+1. Use absolute paths from the project root:
+   ```python
+   # See docs/rules/theological_terms.md for term definitions
+   ```
+
+2. Reference specific sections when applicable:
+   ```python
+   # See "Database Access Patterns" in docs/rules/database_access.md
+   ```
+
+## Updating Documentation
+
+When making changes to code that affect functionality:
+
+1. Update relevant documentation files
+2. Add an entry to the change history section if present
+3. Ensure examples in documentation match the updated code
+
+## Theological Term Documentation
+
+Always consult `docs/rules/theological_terms.md` when working with Hebrew or Greek theological terms to ensure:
+
+1. Proper Strong's ID mapping
+2. Correct minimum occurrence requirements
+3. Appropriate handling of term variants 
+

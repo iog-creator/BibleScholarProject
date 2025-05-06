@@ -1,11 +1,12 @@
 ---
+type: always
+title: TVTMS Expected Count Guidelines
 description: Expected count validations for TVTMS processing
-globs: 
+globs:
   - "**/tvtms/**/*.py"
   - "**/scripts/*tvtms*.py"
 alwaysApply: false
 ---
 
-# TVTMS Expected Count Validation
+# TVTMS Expected Count Guidelines
 
-This rule provides guidelines for validating TVTMS mapping counts.

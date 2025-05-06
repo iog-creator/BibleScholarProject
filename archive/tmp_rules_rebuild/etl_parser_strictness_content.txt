@@ -1,0 +1,35 @@
+# ETL Parser Strictness Guidelines 
+ 
+## Overview 
+ 
+This rule defines standards for parser strictness levels in ETL processes. 
+ 
+## Parser Strictness Levels 
+ 
+ETL parsers should support the following strictness levels: 
+ 
+1. **STRICT**: Fail on any formatting or data quality issue 
+2. **NORMAL**: Fail on critical issues, log warnings for minor issues 
+3. **LENIENT**: Attempt to recover from all errors, log warnings 
+ 
+## Implementation Guidelines 
+ 
+```python 
+from enum import Enum 
+ 
+class ParserStrictness(Enum): 
+    STRICT = "strict"   # Fail on any issue 
+    NORMAL = "normal"   # Default behavior 
+    LENIENT = "lenient" # Best-effort parsing 
+ 
+def parse_file(file_path, strictness=ParserStrictness.NORMAL): 
+    # Implementation that respects strictness level 
+    # ... 
+``` 
+ 
+## Error Handling 
+ 
+1. Document which errors are considered critical vs. minor 
+2. Log all issues regardless of strictness level 
+3. Always include line number and context in error messages 
+4. Provide summary statistics of issues encountered 

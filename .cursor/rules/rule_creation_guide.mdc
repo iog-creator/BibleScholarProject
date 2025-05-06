@@ -1,0 +1,95 @@
+---
+description: Guidelines for creating and maintaining Cursor rules
+globs: 
+alwaysApply: false
+---
+type: always          # Rule type (always or agentRequested)
+title: Rule Title     # Short, descriptive title
+description: Brief description of what the rule does
+globs:                # File patterns this rule applies to
+  - "pattern/to/match/*.py"
+  - "other/pattern/*.js"
+alwaysApply: false    # Whether rule is automatically included for all files
+---
+```
+
+## Agent Compatibility
+
+To ensure rules work well with AI agents:
+
+1. **Set `alwaysApply: false` by default** - This prevents rules from being auto-applied to all conversations, which can overwhelm agents with too many rules.
+
+2. **Use specific glob patterns** - Target only the files where the rule is relevant to avoid rule noise.
+
+3. **When to use `alwaysApply: true`**:
+   - Only for critical rules that must ALWAYS be followed
+   - For project-wide standards that apply universally
+   - When providing essential context needed for all interactions
+
+4. **Use the audit tools** to identify rules that should be converted to `alwaysApply: false`:
+   ```powershell
+   # Run the audit script
+   .\scripts\cursor_rules\audit_rules_auto.ps1
+   
+   # Apply the fixes
+   .\scripts\cursor_rules\fixes\apply_all_fixes.bat
+   ```
+
+## Rule Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| `always` | Standard rule type | Most rules |
+| `agentRequested` | Can be requested by agent | Reference material |
+
+## Creating New Rules
+
+### Option 1: Use the Management Scripts
+
+The easiest way to manage rules is with the provided scripts:
+
+```powershell
+# Interactive rule management
+.\scripts\cursor_rules\manage_rules.ps1
+
+# Create a new rule
+.\scripts\cursor_rules\create_rule.ps1 -RuleName "your_rule_name" -Title "Your Rule Title" -Description "Your rule description" -Globs @("**/path/to/*.py")
+
+# Generate a non-interactive batch script
+.\scripts\cursor_rules\generate_rule_script.ps1 -RuleName "your_rule_name" -Title "Your Rule Title" -Description "Your rule description" -Globs @("**/path/to/*.py")
+```
+
+### Option 2: Use the Template
+
+1. Copy the template from `templates/cursor_rule_template.md`
+2. Replace the placeholders with your rule content
+3. Save to `.cursor/rules/your_rule_name.mdc`
+
+### Option 3: Manual Creation
+
+1. Create a new file in `.cursor/rules/` with `.mdc` extension
+2. Add YAML frontmatter with required fields
+3. Add detailed markdown content after the frontmatter
+
+## Best Practices
+
+1. **Descriptive titles and descriptions** - Make it clear what the rule does
+2. **Specific glob patterns** - Target only files where the rule applies
+3. **Avoid `alwaysApply: true`** - Set to false for most rules
+4. **Include examples** - Show correct and incorrect usage
+5. **Reference other files** - Use `@filename` syntax to include relevant file content
+6. **Structure with headers** - Use clear section headings
+7. **Code blocks with language** - Use proper syntax highlighting
+
+## Testing Rules
+
+To verify a rule is applied correctly:
+1. Open a file matching the glob pattern
+2. Check that the rule appears in the Cursor context
+3. Verify the rule guidance is followed by the AI assistant
+
+2. Check that the rule appears in the Cursor context
+3. Verify the rule guidance is followed by the AI assistant
+
+2. Check that the rule appears in the Cursor context
+3. Verify the rule guidance is followed by the AI assistant 

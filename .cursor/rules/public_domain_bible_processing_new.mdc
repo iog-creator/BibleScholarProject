@@ -1,0 +1,8 @@
+﻿---
+type: agentRequested
+description: Use this rule for all scripts and tests processing public domain Bible data (KJV, ASV, WEB) and verifying verse counts.
+globs:
+  - "src/etl/etl_english_bible.py"
+  - "src/api/*/english_*.py"
+  - "src/api/*/english_*.py"
+  - "tests/unit/test_*kjv*.py"

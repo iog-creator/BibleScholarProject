@@ -1,11 +1,12 @@
 ---
+type: always
+title: Pandas Null Handling Guidelines
 description: Guidelines for handling null values in pandas DataFrames
-globs: 
+globs:
   - "**/etl/**/*.py"
   - "**/scripts/**/*pandas*.py"
 alwaysApply: false
 ---
 
-# Pandas Null Value Handling Guidelines
+# Pandas Null Handling Guidelines
 
-This rule provides standards for handling null values in pandas DataFrames.

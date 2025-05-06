@@ -1,0 +1,117 @@
+# DSPy Training Data Generation Guidelines
+
+## Overview
+
+DSPy is used for generating training data for language models in the BibleScholar project. Follow these guidelines for consistent data generation and collection.
+
+## Data Collection Principles
+
+1. **Data Sources:**
+   - Bible text (original languages and translations)
+   - Lexicon entries (Strong's, BDB, etc.)
+   - Theological term definitions and mappings
+   - Versification mappings (TVTMS)
+
+2. **Data Quality:**
+   - Ensure balanced representation across books, chapters, and translations
+   - Include diverse theological terms and concepts
+   - Represent multiple reading levels and complexity
+   - Maintain theological accuracy in all examples
+
+## Directory Structure
+
+All DSPy training data should be organized as follows:
+
+```
+data/
+  processed/
+    dspy_training_data/
+      lexicon/
+      verses/
+      theological_terms/
+      versification/
+```
+
+## File Naming Conventions
+
+- `dspy_{source}_{concept}.jsonl` - For training examples
+- `dspy_{source}_{concept}_formatted.jsonl` - For formatted inputs/outputs
+- `dspy_metrics_{source}_{model}.json` - For evaluation metrics
+
+## Format Standards
+
+All DSPy training data should be formatted as JSONL files with the following structure:
+
+```json
+{"input": "What is the Strong's ID for 'elohim'?", "output": "H430"}
+{"input": "Find verses containing the term 'chesed'", "output": "Genesis 24:12, Exodus 15:13, ..."}
+```
+
+## Required Fields
+
+1. **Lexicon Entries:**
+   - Strong's ID
+   - Original word
+   - Transliteration
+   - Definition
+   - Part of speech
+
+2. **Verse Examples:**
+   - Reference (book, chapter, verse)
+   - Original text
+   - Translation
+   - Key theological terms
+
+## Evaluation Metrics
+
+Always collect the following metrics when generating DSPy data:
+
+1. **Coverage:**
+   - Percentage of theological terms included
+   - Percentage of Bible books represented
+   - Distribution across testaments
+
+2. **Quality:**
+   - Faithfulness to original text
+   - Theological accuracy
+   - Language model performance on test set
+
+## Implementation Guidelines
+
+```python
+# Standard DSPy data collection pattern
+import json
+import os
+
+def collect_dspy_examples(source_data, target_file, transform_fn):
+    """Collect DSPy examples from source data.
+    
+    Args:
+        source_data: Source data to transform
+        target_file: Path to save JSONL data
+        transform_fn: Function to transform source data to DSPy format
+    """
+    os.makedirs(os.path.dirname(target_file), exist_ok=True)
+    
+    examples = []
+    for item in source_data:
+        example = transform_fn(item)
+        if example:
+            examples.append(example)
+    
+    with open(target_file, 'w', encoding='utf-8') as f:
+        for example in examples:
+            f.write(json.dumps(example) + '\n')
+            
+    print(f"Generated {len(examples)} DSPy examples in {target_file}")
+    return examples
+```
+
+## Required Validation
+
+All DSPy training data must be validated using:
+
+1. **Schema validation** - Ensure all required fields are present
+2. **Theological validation** - Verify theological accuracy of examples
+3. **Coverage testing** - Check for balanced representation
+4. **Model testing** - Verify model performance on examples 

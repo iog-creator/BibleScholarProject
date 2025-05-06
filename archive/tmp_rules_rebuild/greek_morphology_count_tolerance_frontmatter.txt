@@ -1,0 +1,11 @@
+--- 
+type: always 
+title: Greek Morphology Count Tolerance 
+description: Guidelines for tolerance levels in Greek morphology code counts 
+globs: 
+  - "src/etl/**/greek_*.py" 
+  - "src/etl/morphology/greek_*.py" 
+  - "tests/unit/test_greek_*.py" 
+alwaysApply: false 
+--- 
+ 

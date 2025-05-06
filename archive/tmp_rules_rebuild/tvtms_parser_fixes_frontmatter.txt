@@ -1,0 +1,11 @@
+--- 
+type: always 
+title: TVTMS Parser Fixes 
+description: Guidelines for implementing parser fixes for TVTMS file processing 
+globs: 
+  - "src/tvtms/parser.py" 
+  - "src/tvtms/file_processor.py" 
+  - "tests/unit/test_tvtms_parser.py" 
+alwaysApply: false 
+--- 
+ 

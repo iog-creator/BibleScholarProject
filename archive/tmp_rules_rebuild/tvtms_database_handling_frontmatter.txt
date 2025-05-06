@@ -1,0 +1,11 @@
+--- 
+type: always 
+title: TVTMS Database Handling 
+description: Guidelines for TVTMS database operations and versification mapping 
+globs: 
+  - "src/tvtms/**/*.py" 
+  - "src/database/tvtms_*.py" 
+  - "tests/unit/test_*tvtms*.py" 
+alwaysApply: false 
+--- 
+ 

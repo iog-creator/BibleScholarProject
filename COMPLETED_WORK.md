@@ -177,48 +177,42 @@ A comprehensive reorganization of the project structure was completed to improve
 
 ## Recent Achievements (May 2025)
 
-### TVTMS Database and DSPy Integration Enhancement (2025-06-05)
+### ESV Bible Integration and Testing Framework (2025-06-06)
 
-- **Database Connection Management Improvements**:
-  - Enhanced TVTMS database functions to support both direct psycopg Connection and SQLAlchemy ConnectionFairy objects
-  - Implemented proper transaction management with explicit commits for direct database connections
-  - Improved error handling with detailed logging of database operations
-  - Fixed connection handling in integration tests to ensure proper cleanup
-  - Updated three key database functions:
-    - `store_mappings`: Enhanced to handle various connection types and properly commit changes
-    - `store_rules`: Improved transaction handling and error reporting
-    - `store_documentation`: Added robust connection type detection and proper commits
-  - Created comprehensive rules documentation for database operations
+- **ESV Bible Data Integration**:
+  - Added support for ESV (English Standard Version) Bible text
+  - Modified database schema to support multiple translations per verse
+  - Enhanced verse storage with translation_source field in unique constraints
+  - Successfully loaded initial ESV verses with proper formatting
+  - Established groundwork for supporting additional translations
 
-- **DSPy Training Data Collection**:
-  - Verified and enhanced DSPy training data collection for versification parsing errors
-  - Confirmed collection of parsing errors to versification_parser_schema_issues.jsonl (66MB+)
-  - Validated storage of successful parsing examples in tvtms_parsing_examples.jsonl
-  - Enhanced error logging with detailed context information for better training
-  - Implemented consistent JSON structure for DSPy training data:
-    - error_type: Classification of the error (e.g., "parser_error")
-    - input: The raw input that caused the error
-    - error_message: Detailed description of what went wrong
-    - context: Location in code where error occurred (file, function)
-    - fix_applied: Description of automatic correction applied, if any
-    - timestamp: When the error occurred
-  - Successfully collected 89 NER datasets, theological terms, and translation examples
+- **Integration Test Framework Enhancement**:
+  - Created new dedicated ESV Bible test module (test_esv_bible_data.py)
+  - Implemented multiple test cases for ESV data validation:
+    - Basic existence verification
+    - Specific key verse content testing
+    - Verse structure validation
+    - Strong's number integration verification
+    - Translation consistency comparison
+  - Enhanced database integrity tests to handle multiple translations
+  - Updated verse count validation to use minimum count approach
+  - Fixed test framework to avoid false negatives when new translations are added
+  - Successfully validated initial ESV text integration
 
-- **Integration Test Enhancement**:
-  - Fixed ETL integration tests to properly handle database connections
-  - Addressed issue with function parameter order in database operations
-  - Added explicit transaction control to prevent test data persistence
-  - Improved test isolation with proper connection handling
-  - Ensured tests properly verify data integrity
-  - Fixed all previously failing ETL tests (4/4 tests now passing)
+- **Test Suite Improvements**:
+  - Created central test runner (test_integration.py) for organized test execution
+  - Added automated reporting of translation statistics
+  - Implemented test_database_integrity.py improvements for multi-translation support
+  - Updated test_verse_data.py to handle growing database content
+  - Ensured all 73 tests pass with ESV data added
+  - Added extensible pattern for adding new translation tests
 
-- **Documentation Enhancements**:
-  - Created new Cursor rule files:
-    - etl_rules.mdc: Updated with database connection guidance
-    - tvtms_database_handling.mdc: New dedicated rules for TVTMS database operations
-  - Updated code comments for database functions with proper documentation
-  - Enhanced logging to provide better context for operations
-  - Documented DSPy data collection methodology for future reference
+- **Documentation Updates**:
+  - Added ESV integration documentation
+  - Created guidelines for adding additional translations
+  - Updated expected verse counts in database documentation
+  - Documented multi-translation testing approach
+  - Added notes on Strong's number integration for English translations
 
 ### Theological Term Testing Enhancement (2025-06-04)
 

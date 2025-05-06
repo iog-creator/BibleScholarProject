@@ -1,8 +1,15 @@
----
-description: 
+--- 
+type: always 
+title: TVTMS Database Handling 
+description: Guidelines for TVTMS database operations and versification mapping 
 globs: 
-alwaysApply: false
----
+  - "src/tvtms/**/*.py" 
+  - "src/database/tvtms_*.py" 
+  - "tests/unit/test_*tvtms*.py" 
+alwaysApply: false 
+--- 
+ 
+
 # TVTMS Database Handling
 
 ## Connection Type Support
@@ -47,4 +54,6 @@ All TVTMS data storage functions must:
 1. **Parsing errors**: Log to versification_parser_schema_issues.jsonl
 2. **Successful parses**: Log sample successful parses to tvtms_parsing_examples.jsonl
 3. **Schema**: Use consistent JSON structure for all logging
+
+
 

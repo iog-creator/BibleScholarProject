@@ -1,0 +1,271 @@
+# TVTMS Parser Fix Guidelines
+
+**Type:** Development Guidelines  
+**Scope:** TVTMS parser implementation in `src/tvtms/parser.py`  
+**Priority:** High
+
+## Overview
+
+The TVTMS (Translators Versification Traditions with Methodology for Standardisation) parser has several failing tests. These issues need to be addressed to ensure proper functioning of the versification system.
+
+## Identified Issues
+
+1. **Type handling issues**:
+   - The parser returns strings for chapter numbers instead of integers (e.g., `'1'` vs `1`)
+   - All numeric values should be properly cast to integers when appropriate
+
+2. **Range handling issues**:
+   - Cross-chapter ranges don't work (e.g., `Psa.119:175-120:2`)
+   - Cross-book ranges don't work (e.g., `Mal.4:5-Mat.1:1`)
+   - Range notes are not properly added to each verse in the range
+
+3. **Special reference handling**:
+   - Special markers like `!a` don't parse correctly
+   - Psalm titles (e.g., `Psa.142:Title`) don't parse correctly
+   - Letter chapters (e.g., `Est.A:1`) are not properly handled
+
+4. **Manuscript and annotation parsing**:
+   - Manuscript markers like `(LXX)` are not being extracted
+   - Annotation markers like `[=Gen.1:2]` are not being properly parsed
+   - Combined markers (e.g., `Rev.13:18(A)[=Rev.13:17]`) are not handled correctly
+
+5. **Relative reference handling**:
+   - References using current book context (e.g., `1:1` when current book is `Gen`) are not properly handled
+
+6. **Input validation issues**:
+   - Invalid book references are returning objects instead of empty lists
+   - Error reporting is limited or non-existent
+
+## Implementation Plan
+
+### 1. Fix Numeric Type Handling
+
+```python
+def _parse_single_reference(self, reference, current_book=None):
+    # ...existing code...
+    
+    # Fix type handling - convert numeric strings to integers
+    if result.get('chapter') and result['chapter'].isdigit():
+        result['chapter'] = int(result['chapter'])
+    
+    if result.get('verse') and str(result['verse']).isdigit():
+        result['verse'] = int(result['verse'])
+    
+    # ...rest of the function...
+```
+
+### 2. Implement Cross-Chapter and Cross-Book Range Handling
+
+```python
+def _expand_verse_range(self, start_ref, end_ref):
+    """
+    Expand a verse range into individual verse references.
+    Handles cross-chapter and cross-book ranges.
+    
+    Args:
+        start_ref (dict): Starting reference parsed dictionary
+        end_ref (dict): Ending reference parsed dictionary
+        
+    Returns:
+        list: List of expanded verse references
+    """
+    results = []
+    
+    # Same book and chapter
+    if (start_ref['book'] == end_ref['book'] and 
+        start_ref['chapter'] == end_ref['chapter']):
+        # Simple verse range within same chapter
+        for verse in range(start_ref['verse'], end_ref['verse'] + 1):
+            verse_ref = start_ref.copy()
+            verse_ref['verse'] = verse
+            verse_ref['range_note'] = f"Part of range {start_ref['book']}.{start_ref['chapter']}:{start_ref['verse']}-{end_ref['verse']}"
+            results.append(verse_ref)
+            
+    # Same book, different chapters
+    elif start_ref['book'] == end_ref['book']:
+        # Handle cross-chapter range
+        # Add all verses from start chapter
+        # Add all verses from middle chapters if any
+        # Add verses up to end verse in end chapter
+        # ...implementation...
+        
+    # Different books
+    else:
+        # Handle cross-book range
+        # Add ending verses from start book
+        # Add verses from books in between if any
+        # Add beginning verses from end book
+        # ...implementation...
+    
+    return results
+```
+
+### 3. Implement Special Reference Handling
+
+```python
+def _parse_special_references(self, reference):
+    """Parse special references like Psalm titles and special markers."""
+    # Handle Psalm titles
+    title_match = re.match(r'([A-Za-z0-9]+)\.(\d+):Title', reference, re.IGNORECASE)
+    if title_match:
+        book, chapter = title_match.groups()
+        return [{
+            'book': self._normalize_book_name(book),
+            'chapter': int(chapter),
+            'verse': 0,
+            'subverse': None,
+            'manuscript': None,
+            'annotation': None,
+            'range_note': None,
+            'special_marker': 'Title',
+            'marker_type': 'Psalm title'
+        }]
+    
+    # Handle special markers (!a, !b, etc.)
+    if reference.startswith('!'):
+        return [{
+            'book': None,
+            'chapter': None,
+            'verse': None,
+            'subverse': None,
+            'manuscript': None,
+            'annotation': None,
+            'range_note': None,
+            'special_marker': reference,
+            'marker_type': 'Special marker'
+        }]
+    
+    # Handle letter chapters (Est.A:1)
+    letter_chapter_match = re.match(r'([A-Za-z0-9]+)\.([A-Z]):(\d+)', reference)
+    if letter_chapter_match:
+        book, chapter, verse = letter_chapter_match.groups()
+        return [{
+            'book': self._get_letter_chapter_book(book, chapter),
+            'chapter': chapter,
+            'verse': int(verse),
+            'subverse': None,
+            'manuscript': None,
+            'annotation': None,
+            'range_note': None,
+            'special_marker': None,
+            'marker_type': None
+        }]
+    
+    return None
+```
+
+### 4. Fix Manuscript and Annotation Parsing
+
+```python
+def _extract_manuscript(self, ref_text):
+    """Extract manuscript marker from reference text."""
+    manuscript_match = re.search(r'\(([^)]+)\)', ref_text)
+    if manuscript_match:
+        manuscript = manuscript_match.group(1)
+        # Remove the manuscript portion from the reference text
+        ref_text = ref_text.replace(f"({manuscript})", "")
+        return ref_text, manuscript
+    return ref_text, None
+
+def _extract_annotation(self, ref_text):
+    """Extract annotation from reference text."""
+    annotation_match = re.search(r'\[=([^\]]+)\]', ref_text)
+    if annotation_match:
+        annotation = annotation_match.group(1)
+        # Remove the annotation portion from the reference text
+        ref_text = ref_text.replace(f"[={annotation}]", "")
+        return ref_text, annotation
+    return ref_text, None
+```
+
+### 5. Implement Proper Relative Reference Handling
+
+```python
+def parse_reference(self, reference, current_book=None):
+    """
+    Parse a Bible reference with support for relative references.
+    
+    Args:
+        reference (str): Bible reference to parse
+        current_book (str, optional): Current book context for relative references
+        
+    Returns:
+        list: List of parsed reference dictionaries
+    """
+    if not reference:
+        return []
+    
+    # Handle relative references (no book specified)
+    if re.match(r'^\d+:\d+', reference) and current_book:
+        reference = f"{current_book}.{reference}"
+    
+    # ...rest of the function...
+```
+
+### 6. Improve Input Validation and Error Handling
+
+```python
+def _validate_book(self, book_abbrev):
+    """Validate a book abbreviation."""
+    normalized = book_abbrev.lower() if book_abbrev else None
+    
+    if not normalized:
+        self.logger.warning(f"Empty book abbreviation")
+        return None
+        
+    if normalized not in self.book_abbrevs:
+        self.logger.warning(f"Unknown book abbreviation: {normalized}")
+        return None
+        
+    return self.book_abbrevs[normalized]
+
+def parse_reference(self, reference, current_book=None):
+    # ...existing code...
+    
+    try:
+        # Parsing logic
+    except Exception as e:
+        self.logger.error(f"Error parsing reference '{reference}': {str(e)}")
+        return []
+```
+
+## Testing Process
+
+1. Run the parser tests to identify specific failures:
+   ```bash
+   python -m pytest tests/unit/test_parser.py -v
+   ```
+
+2. Fix each failing test category one at a time:
+   - Type handling fixes
+   - Range handling fixes
+   - Special reference handling fixes
+   - Manuscript and annotation fixes
+   - Relative reference fixes
+   - Input validation fixes
+
+3. After each fix, run the specific test to verify:
+   ```bash
+   python -m pytest tests/unit/test_parser.py::test_parse_range_reference -v
+   ```
+
+4. Once all individual tests pass, run the full parser test suite:
+   ```bash
+   python -m pytest tests/unit/test_parser.py
+   ```
+
+5. Finally, run the versification integration tests to verify end-to-end functionality:
+   ```bash
+   python -m pytest tests/integration/test_versification_data.py
+   ```
+
+## Implementation Notes
+
+- Implement changes incrementally, focusing on one issue category at a time
+- Add specific logging to identify parsing failures
+- Consider adding a strictness level to control parser behavior (strict vs. lenient mode)
+- Maintain backward compatibility with existing API
+- Ensure the parser is defensive and handles malformed input gracefully
+
+
+

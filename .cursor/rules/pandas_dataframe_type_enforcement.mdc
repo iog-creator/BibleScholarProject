@@ -1,11 +1,12 @@
 ---
+type: always
+title: Pandas DataFrame Type Enforcement
 description: Guidelines for enforcing data types in pandas DataFrames
-globs: 
+globs:
   - "**/etl/**/*.py"
   - "**/scripts/**/*pandas*.py"
 alwaysApply: false
 ---
 
-# Pandas DataFrame Type Enforcement Guidelines
+# Pandas DataFrame Type Enforcement
 
-This rule provides standards for enforcing data types in pandas DataFrames.

@@ -1,0 +1,19 @@
+@echo off
+echo Applying all rule fixes...
+
+echo Fixing database_access...
+call %~dp0fix_database_access.bat
+
+echo Fixing documentation_usage...
+call %~dp0fix_documentation_usage.bat
+
+echo Fixing dspy_generation...
+call %~dp0fix_dspy_generation.bat
+
+echo Fixing hebrew_rules...
+call %~dp0fix_hebrew_rules.bat
+
+echo Fixing theological_terms...
+call %~dp0fix_theological_terms.bat
+
+echo All fixes applied successfully!

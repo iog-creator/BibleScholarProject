@@ -1,0 +1,81 @@
+# DSPy Training Data Generation Guidelines
+
+## Auto-Tracking Requirements
+
+All data loading and ETL scripts must automatically trigger DSPy collection to ensure training data stays up to date. Key requirements:
+
+1. **Automatic Triggering**: Scripts must call appropriate collector hooks after database changes:
+   ```python
+   # After successfully updating the database
+   from src.utils import dspy_collector
+   dspy_collector.trigger_after_verse_insertion(conn, 'TRANSLATION_CODE')
+   ```
+
+2. **Appropriate Hook Selection**:
+   - `trigger_after_verse_insertion()` - For Bible verse loading
+   - `trigger_after_etl_process()` - For general ETL processes
+   - `trigger_after_morphology_update()` - For morphology data changes
+
+3. **Error Handling**: Always wrap DSPy collection calls in try/except:
+   ```python
+   try:
+       dspy_collector.trigger_after_etl_process(conn, 'process_name')
+       logger.info("Triggered DSPy training data collection")
+   except Exception as e:
+       logger.warning(f"DSPy training data collection failed: {e}")
+   ```
+
+## Batch Processing Requirement
+
+Always use batch processing for efficiency when generating training data:
+
+```python
+def process_in_batches(items, batch_size=100):
+    """Process items in batches for efficiency."""
+    results = []
+    for i in range(0, len(items), batch_size):
+        batch = items[i:i+batch_size]
+        batch_results = process_batch(batch)
+        results.extend(batch_results)
+    return results
+```
+
+## Critical Theological Term Validation
+
+All data generation must validate the presence of critical theological terms:
+
+```python
+def validate_theological_terms(conn):
+    """Validate that critical theological terms meet minimum requirements."""
+    critical_terms = {
+        "H430": {"name": "Elohim", "min_count": 2600},
+        "H3068": {"name": "YHWH", "min_count": 6000},
+        "H113": {"name": "Adon", "min_count": 335},
+        "H2617": {"name": "Chesed", "min_count": 248},
+        "H539": {"name": "Aman", "min_count": 100}
+    }
+    
+    # Implement validation logic
+```
+
+## Data Format Standards
+
+All DSPy training data must follow these format standards:
+
+1. **JSONL Format**: One JSON object per line
+2. **Standard Fields**: Each dataset type has required fields:
+   - QA: `context`, `question`, `answer`, `metadata`
+   - Theological: `term`, `context`, `analysis`
+   - NER: `tokens`, `tags`, `metadata`
+   - Web: `query`, `action`, `parameters`, `expected_response`
+
+3. **Schema Documentation**: Include schema in comment at file start:
+   ```
+   // Schema: {"context": "str", "question": "str", "answer": "str"}
+   ```
+
+4. **Clean Data**: Apply proper text cleaning:
+   - Remove HTML/XML tags
+   - Normalize whitespace
+   - Handle special characters
+   - Ensure proper Unicode encoding 

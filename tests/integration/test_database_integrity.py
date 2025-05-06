@@ -56,8 +56,9 @@ def test_database_tables_exist(db_engine):
 
 def test_key_tables_record_counts(db_engine):
     """Test that key tables have the expected number of records."""
-    expected_counts = {
-        "verses": 31219,
+    # We now use minimum expected counts since additional translations may be added
+    min_expected_counts = {
+        "verses": 31219,  # Base count as documented in COMPLETED_WORK.md
         "hebrew_ot_words": 305577,
         "greek_nt_words": 142096,
         "hebrew_entries": 9345,
@@ -65,18 +66,32 @@ def test_key_tables_record_counts(db_engine):
     }
     
     with db_engine.connect() as conn:
-        for table_name, expected_count in expected_counts.items():
+        # First check what translations we have in the database
+        result = conn.execute(text("""
+            SELECT translation_source, COUNT(*) as verse_count 
+            FROM bible.verses 
+            GROUP BY translation_source
+        """))
+        translation_counts = {row.translation_source: row.verse_count for row in result.fetchall()}
+        logger.info(f"Translation counts: {translation_counts}")
+        
+        for table_name, min_expected in min_expected_counts.items():
             result = conn.execute(text(f"""
                 SELECT COUNT(*) FROM bible.{table_name}
             """))
             actual_count = result.scalar()
             
-            logger.info(f"Table bible.{table_name} has {actual_count} records (expected {expected_count})")
+            logger.info(f"Table bible.{table_name} has {actual_count} records (minimum expected {min_expected})")
             
-            # Allow a small margin of error (±1%) for production variations
-            margin = expected_count * 0.01
-            assert abs(actual_count - expected_count) <= margin, \
-                f"Table bible.{table_name} has {actual_count} records, expected {expected_count} (±{margin})"
+            if table_name == "verses":
+                # For verses, we allow additional translations to increase the count
+                assert actual_count >= min_expected, \
+                    f"Table bible.{table_name} has only {actual_count} records, expected at least {min_expected}"
+            else:
+                # For other tables, we still use the margin of error approach
+                margin = min_expected * 0.01
+                assert abs(actual_count - min_expected) <= margin, \
+                    f"Table bible.{table_name} has {actual_count} records, expected {min_expected} (±{margin})"
 
 def test_bible_book_completeness(db_engine):
     """Test that all Bible books are present in the verses table."""

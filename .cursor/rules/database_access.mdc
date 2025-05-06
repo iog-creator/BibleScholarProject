@@ -1,15 +1,15 @@
-﻿---
-name: Database Access Patterns
-description: Standards for database access patterns in the BibleScholarProject
-globs:
-  - src/database/**/*.py
-  - src/**/models/*.py
-  - scripts/db_*.py
-  - src/api/**/*.py
-alwaysApply: true
----
-# Database Access Patterns
+---                                                                
+type: always                                                      
+title: Database Access Patterns                                                     
+description: Standards for database access patterns in the BibleScholarProject                                         
+globs:                                                            
+  - "src/database/**/*.py"                                                       
+  - "src/api/**/*.py"                                                       
+  - "tests/unit/test_*db*.py"                                                       
+alwaysApply: false                                                
+---                                                                
+                                                                  
+Always use the connection utility from database module.
 
-## Connection Management
 
-Always use the connection utility from database module:
+

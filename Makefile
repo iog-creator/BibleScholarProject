@@ -1,6 +1,6 @@
 # Bible Scholar Project Makefile
 
-.PHONY: help setup install db-setup db-create etl etl-lexicons etl-texts etl-morphology etl-names etl-arabic etl-tvtms test test-unit test-integration verify run run-minimal run-debug clean optimize-db fix-hebrew-strongs process-lexicons debug-lexicon run-cross-language run-api run-web run-all run-tests
+.PHONY: help setup install db-setup db-create etl etl-lexicons etl-texts etl-morphology etl-names etl-arabic etl-tvtms test test-unit test-integration verify run run-minimal run-debug clean optimize-db fix-hebrew-strongs process-lexicons debug-lexicon run-cross-language run-api run-web run-all run-tests dspy-status dspy-refresh dspy-collect dspy-enhance dspy-log-interactions
 
 # Load environment variables
 include .env
@@ -36,6 +36,11 @@ help:
 	@echo "make run-web           - Run the web application"
 	@echo "make run-all           - Run both the API server and web application for integration testing"
 	@echo "make run-tests         - Start services and run integration tests"
+	@echo "make dspy-status        - Check DSPy training data status"
+	@echo "make dspy-refresh       - Force refresh of DSPy training data"
+	@echo "make dspy-collect       - Collect DSPy training data"
+	@echo "make dspy-enhance       - Enhance DSPy training data with specialized examples"
+	@echo "make dspy-log-interactions - Manage user interaction logging for DSPy training data"
 
 setup: install db-create db-setup
 
@@ -164,4 +169,24 @@ run-tests:
 	@start cmd /k python -m src.web_app
 	@timeout /T 5
 	@python test_integration.py
-	@echo "Integration tests completed!" 
+	@echo "Integration tests completed!"
+
+dspy-status:
+	@echo "Checking DSPy training data status..."
+	@python scripts/refresh_dspy_data.py status
+
+dspy-refresh:
+	@echo "Refreshing DSPy training data..."
+	@python scripts/refresh_dspy_data.py refresh
+
+dspy-collect:
+	@echo "Collecting DSPy training data..."
+	@python scripts/generate_dspy_training_data.py 
+
+dspy-enhance:
+	@echo "Enhancing DSPy training data with specialized examples..."
+	@python scripts/enhance_dspy_training.py
+
+dspy-log-interactions:
+	@echo "Managing user interaction logging for DSPy training data..."
+	@python scripts/log_user_interactions.py 

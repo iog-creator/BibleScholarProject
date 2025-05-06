@@ -4,9 +4,9 @@ This directory contains training data files for DSPy-based AI model development 
 
 ## File Listing and Contents
 
-- `qa_dataset.jsonl`: 99 examples
-- `summarization_dataset.jsonl`: 0 examples
-- `translation_dataset.jsonl`: 0 examples
+- `qa_dataset.jsonl`: 104 examples
+- `summarization_dataset.jsonl`: 3 examples
+- `translation_dataset.jsonl`: 16 examples
 - `theological_terms_dataset.jsonl`: 100 examples
 - `ner_dataset.jsonl`: 86 examples
 - `web_interaction_dataset.jsonl`: 13 examples
@@ -134,5 +134,5 @@ class BibleSearchAgent(dspy.Module):
 
 ## Generation
 
-Generated on 2025-05-05 00:00:43
+Generated on 2025-05-05 19:53:46
 To regenerate this data, run `python scripts/generate_dspy_training_data.py`

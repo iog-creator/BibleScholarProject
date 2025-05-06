@@ -4,6 +4,7 @@
 
 - [STEPBible Explorer System Build Guide](#stepbible-explorer-system-build-guide)
   - [Table of Contents](#table-of-contents)
+  - [⚠️ Important: TVTMS Data Source Authority](#️-important-tvtms-data-source-authority)
   - [System Overview](#system-overview)
   - [Project Organization](#project-organization)
   - [Prerequisites](#prerequisites)
@@ -14,12 +15,13 @@
     - [1. Lexicon Processing](#1-lexicon-processing)
     - [2. Tagged Text Processing](#2-tagged-text-processing)
     - [3. Arabic Bible Processing](#3-arabic-bible-processing)
-    - [4. Morphology Code Processing](#4-morphology-code-processing)
-    - [5. Proper Names Processing](#5-proper-names-processing)
-    - [6. Versification Mapping (TVTMS)](#6-versification-mapping-tvtms)
-    - [7. REST API](#7-rest-api)
-    - [8. Web Interface](#8-web-interface)
-    - [9. Utility Functions](#9-utility-functions)
+    - [4. English Bible Processing](#4-english-bible-processing)
+    - [5. Morphology Code Processing](#5-morphology-code-processing)
+    - [6. Proper Names Processing](#6-proper-names-processing)
+    - [7. Versification Mapping (TVTMS)](#7-versification-mapping-tvtms)
+    - [8. REST API](#8-rest-api)
+    - [9. Web Interface](#9-web-interface)
+    - [10. Utility Functions](#10-utility-functions)
   - [Building and Running the System](#building-and-running-the-system)
     - [Prerequisites](#prerequisites-1)
     - [1. Install Dependencies](#1-install-dependencies)
@@ -32,6 +34,7 @@
       - [3.5 Process TVTMS Data](#35-process-tvtms-data)
       - [3.6 Process Proper Names Data](#36-process-proper-names-data)
       - [3.7 Run the Arabic Bible ETL Script](#37-run-the-arabic-bible-etl-script)
+      - [3.8 Run the English Bible ETL Script](#38-run-the-english-bible-etl-script)
     - [4. Optimize the Database](#4-optimize-the-database)
     - [5. Verify Data Processing](#5-verify-data-processing)
     - [6. Start the API and Web Interface](#6-start-the-api-and-web-interface)
@@ -54,6 +57,11 @@
     - [Tagged Text Special Cases](#tagged-text-special-cases)
     - [Morphology Code Special Cases](#morphology-code-special-cases)
     - [TVTMS Special Cases](#tvtms-special-cases)
+  - [Theological Terms Standardization](#theological-terms-standardization)
+    - [Core Hebrew Theological Terms](#core-hebrew-theological-terms)
+    - [Strong's ID Format Standards](#strongs-id-format-standards)
+    - [Theological Term Validation](#theological-term-validation)
+    - [Code Patterns for Processing](#code-patterns-for-processing)
   - [Extended Troubleshooting Guide](#extended-troubleshooting-guide)
     - [Database Issues](#database-issues)
     - [Hebrew Strong's ID Issues](#hebrew-strongs-id-issues)
@@ -65,33 +73,6 @@
     - [DSPy Data Generation](#dspy-data-generation)
     - [Autonomous Web Interface Interaction](#autonomous-web-interface-interaction)
   - [License](#license)
-  - [Advanced Performance Optimization](#advanced-performance-optimization)
-  - [Future Enhancements](#future-enhancements)
-  - [Integration with External Biblical Resources (Completed: May 2025)](#integration-with-external-biblical-resources-completed-may-2025)
-    - [Current Status](#current-status)
-    - [Implementation Details](#implementation-details)
-    - [Priority Resources for Integration](#priority-resources-for-integration)
-    - [Detailed Implementation Guide](#detailed-implementation-guide)
-      - [1. API Connection Framework](#1-api-connection-framework)
-        - [API Module Structure:](#api-module-structure)
-      - [2. Caching Architecture](#2-caching-architecture)
-        - [Cache Implementation:](#cache-implementation)
-      - [3. Authentication and Security](#3-authentication-and-security)
-        - [Authentication Implementation:](#authentication-implementation)
-  - [Project Integration Status](#project-integration-status)
-  - [Current Data Status](#current-data-status)
-  - [References](#references)
-  - [Testing Framework](#testing-framework)
-    - [Integration Tests](#integration-tests)
-      - [Running Core Tests](#running-core-tests)
-      - [Focusing on Theological Term Integrity](#focusing-on-theological-term-integrity)
-      - [Test Components](#test-components)
-      - [Theological Terms Testing](#theological-terms-testing)
-      - [Test Verification Report](#test-verification-report)
-      - [Interpreting Test Results](#interpreting-test-results)
-      - [Known Issues](#known-issues)
-    - [Unit Tests](#unit-tests)
-    - [For Developers](#for-developers)
 
 ## ⚠️ Important: TVTMS Data Source Authority
 
@@ -243,6 +224,8 @@ Each directory contains a README.md file explaining its purpose and contents.
    - TTAraSVD (Arabic Bible):
      - Individual Book Files: `data/Tagged-Bibles/Arabic Bibles/Translation Tags Individual Books/NT_*_TTAraSVD*.txt`
      - Full Bible: `data/Tagged-Bibles/Arabic Bibles/TTAraSVD - Translation Tags etc. for Arabic SVD - STEPBible.org CC BY-SA_NT_1_2_1.txt`
+   - TTESV (English Bible):
+     - `STEPBible-Data/Tagged-Bibles/TTESV - Tyndale Translation tags for ESV - TyndaleHouse.com STEPBible.org CC BY-NC.txt`
 
 3. **Morphology Code Files**:
    - TEHMC (Hebrew): 
@@ -311,7 +294,23 @@ The Arabic Bible processing system uses these key files in `src/etl/`:
   - Creates appropriate indexes for efficient queries
   - Sets table comments for better schema documentation
 
-### 4. Morphology Code Processing
+### 4. English Bible Processing
+
+The English Bible processing system uses these key files in `src/etl/`:
+
+- **etl_english_bible.py**:
+  - Processes TTESV (Tyndale Translation tags for ESV) files
+  - Extracts English Bible verse text with supporting data
+  - Handles verse reference formats and book abbreviations
+  - Implements efficient file parsing for large text files
+  - Supports both insertion of new verses and updates to existing verses
+  - Maintains proper database transaction handling for data integrity
+  - Provides detailed logging for ETL process monitoring
+  - Includes validation to ensure data completeness and integrity
+
+The ESV processing script extracts verse text and reference information from the tagged ESV file, carefully skipping Strong's number lines and other metadata while preserving the complete verse text. The process is optimized to handle the specific format of the TTESV file, which includes verse references in the format of "BookAbbr.Chapter.Verse" followed by the verse text.
+
+### 5. Morphology Code Processing
 
 The morphology code processing system uses these key files in `src/etl/morphology/`:
 
@@ -333,7 +332,7 @@ The morphology code processing system uses these key files in `src/etl/morpholog
   - Truncates existing table data before insertion for clean data
   - Loads data into the `greek_morphology_codes` table
 
-### 5. Proper Names Processing
+### 6. Proper Names Processing
 
 The proper names processing system uses these key files in `src/etl/names/`:
 
@@ -347,7 +346,7 @@ The proper names processing system uses these key files in `src/etl/names/`:
   - Supports person, place, and other entity types
   - Currently processes 1,317 distinct proper names
 
-### 6. Versification Mapping (TVTMS)
+### 7. Versification Mapping (TVTMS)
 
 The TVTMS processing system is organized under `src/tvtms/` with these key files:
 
@@ -365,7 +364,7 @@ The TVTMS processing system is organized under `src/tvtms/` with these key files
   - Processes actions in priority order (Merged, Renumber, etc.)
   - Applies mappings to move text between source and standard tables
 
-### 7. REST API
+### 8. REST API
 
 The API system is implemented under `src/api/` with these key files:
 
@@ -420,7 +419,7 @@ def some_endpoint():
 
 This modular design allows the API components to be used independently or as part of the full web application.
 
-### 8. Web Interface
+### 9. Web Interface
 
 The web interface uses Flask with HTML templates located in the `templates/` directory:
 
@@ -437,7 +436,7 @@ The web interface uses Flask with HTML templates located in the `templates/` dir
   - `morphology_detail.html`: Explanation of morphology codes
   - `verse_with_resources.html`: Verse display with external resources
 
-### 9. Utility Functions
+### 10. Utility Functions
 
 The utility functions module provides shared functionality across all components of the system:
 
@@ -590,18 +589,41 @@ psql -U <username> -d bible_db -c "SELECT COUNT(*) FROM bible.proper_name_refere
 
 #### 3.7 Run the Arabic Bible ETL Script
 
-The Arabic Bible ETL script processes tagged Arabic Bible texts from the TTAraSVD collection and loads them into the database:
-
 ```bash
+# Process Arabic Bible
 python -m src.etl.etl_arabic_bible
 ```
 
-The script will:
-1. Connect to the database
-2. Scan for all Arabic Bible files in the data directory
-3. Process each file, extracting verses and tagged words
-4. Load the data into the `bible.arabic_verses` and `bible.arabic_words` tables
-5. Create indexes for efficient querying
+Verify loading:
+
+```bash
+psql -U <username> -d bible_db -c "SELECT COUNT(*) FROM bible.arabic_verses;" | Out-String -Stream
+psql -U <username> -d bible_db -c "SELECT COUNT(*) FROM bible.arabic_words;" | Out-String -Stream
+psql -U <username> -d bible_db -c "SELECT book_name, COUNT(*) as verse_count FROM bible.arabic_verses GROUP BY book_name ORDER BY book_name;" | Out-String -Stream
+```
+
+The verse counts should match the expected counts from the original Bible text.
+
+#### 3.8 Run the English Bible ETL Script
+
+```bash
+# Process ESV Bible text
+python -m src.etl.etl_english_bible
+```
+
+Verify loading:
+
+```bash
+psql -U <username> -d bible_db -c "SELECT COUNT(*) FROM bible.verses WHERE translation_source = 'ESV';" | Out-String -Stream
+psql -U <username> -d bible_db -c "SELECT book_name, COUNT(*) as verse_count FROM bible.verses WHERE translation_source = 'ESV' GROUP BY book_name ORDER BY book_name;" | Out-String -Stream
+```
+
+The ESV Bible should have approximately 31,000 verses across 66 books. Verify that key passages are properly loaded:
+
+```bash
+# Check a famous verse to confirm correct loading
+psql -U <username> -d bible_db -c "SELECT verse_text FROM bible.verses WHERE translation_source = 'ESV' AND book_name = 'John' AND chapter_num = 3 AND verse_num = 16;" | Out-String -Stream
+```
 
 ### 4. Optimize the Database
 
@@ -902,6 +924,121 @@ Our tests use several methods to validate the data:
 - **Ranges**: Expands verse ranges (Gen.50:24-26) into individual mappings.
 - **Extra Books**: Supports non-canonical books like Baruch and additions to Daniel/Esther.
 
+## Theological Terms Standardization
+
+The BibleScholarProject enforces strict standardization for theological terms, especially for Hebrew terms that hold significant theological importance. These standards are documented in the `.cursor/rules/theological_terms.mdc` file and implemented throughout the ETL process.
+
+### Core Hebrew Theological Terms
+
+These critical Hebrew theological terms must always have the correct Strong's ID mappings:
+
+| Term | Hebrew | Strong's ID | Minimum Required Count |
+|---|-----|----|---|
+| Elohim | אלהים | H430 | 2,600 |
+| YHWH | יהוה | H3068 | 6,000 |
+| Adon | אדון | H113 | 335 |
+| Chesed | חסד | H2617 | 248 |
+| Aman | אמן | H539 | 100 |
+
+### Strong's ID Format Standards
+
+The system enforces specific format standards for Hebrew Strong's IDs:
+
+1. **Standard Format**: `H1234` - Basic Strong's ID with 'H' prefix and numeric identifier
+2. **Extended Format**: `H1234a` - Strong's ID with letter suffix for distinguishing different words
+3. **Database Storage**: Strong's IDs are stored in the dedicated `strongs_id` column, extracted from `grammar_code`
+4. **Validation**: All Strong's IDs should match entries in the `hebrew_entries` lexicon table
+5. **Special Codes**: Special codes (H9xxx) used for grammatical constructs are preserved
+
+When Strong's IDs appear in grammar codes, they follow these patterns:
+1. **Standard Pattern**: `{H1234}` - Enclosed in curly braces
+2. **Extended Pattern**: `{H1234a}` - Extended ID enclosed in curly braces
+3. **Prefix Pattern**: `H9001/{H1234}` - Special prefix code followed by ID in braces
+4. **Alternate Pattern**: `{H1234}\H1234` - ID in braces followed by backslash and ID
+
+### Theological Term Validation
+
+After ETL processing, the system validates the presence and correct mapping of critical theological terms:
+
+```bash
+# Verify critical theological term counts
+python scripts/check_critical_terms.py
+
+# Run theological term validation tests
+python -m pytest tests/integration/test_theological_terms.py
+```
+
+The validation process checks:
+1. Minimum occurrence counts for each critical term
+2. Proper mapping of Strong's IDs to lexicon entries
+3. Contextual relationships between theological terms
+4. Distribution of terms across biblical books
+
+### Code Patterns for Processing
+
+The ETL process uses standardized patterns for handling Strong's IDs and theological terms:
+
+```python
+# Pattern for extracting Strong's IDs from grammar_code
+import re
+
+def extract_strongs_id(grammar_code):
+    """Extract Strong's ID from grammar_code field."""
+    if not grammar_code:
+        return None
+        
+    # Try standard pattern in curly braces
+    match = re.search(r'\{(H[0-9]+[A-Za-z]?)\}', grammar_code)
+    if match:
+        return match.group(1)
+        
+    # Try prefix pattern
+    match = re.search(r'H[0-9]+/\{(H[0-9]+)\}', grammar_code)
+    if match:
+        return match.group(1)
+        
+    # Try alternate pattern
+    match = re.search(r'\{(H[0-9]+)\}\\H[0-9]+', grammar_code)
+    if match:
+        return match.group(1)
+        
+    return None
+```
+
+For validating critical theological terms:
+
+```python
+def validate_critical_terms(conn):
+    """Validate minimum counts of critical theological terms."""
+    critical_terms = {
+        "H430": {"name": "Elohim", "min_count": 2600},
+        "H3068": {"name": "YHWH", "min_count": 6000},
+        "H113": {"name": "Adon", "min_count": 335},
+        "H2617": {"name": "Chesed", "min_count": 248},
+        "H539": {"name": "Aman", "min_count": 100}
+    }
+    
+    cursor = conn.cursor()
+    all_valid = True
+    
+    for strongs_id, info in critical_terms.items():
+        cursor.execute(
+            "SELECT COUNT(*) FROM bible.hebrew_ot_words WHERE strongs_id = %s",
+            (strongs_id,)
+        )
+        count = cursor.fetchone()[0]
+        
+        if count < info["min_count"]:
+            print(f"Error: {info['name']} ({strongs_id}) has only {count} occurrences, expected {info['min_count']}")
+            all_valid = False
+        else:
+            print(f"Valid: {info['name']} ({strongs_id}) has {count} occurrences")
+    
+    return all_valid
+```
+
+All documentation and ETL processes must maintain theological term integrity according to these standards.
+
 ## Extended Troubleshooting Guide
 
 ### Database Issues
@@ -954,6 +1091,7 @@ Our tests use several methods to validate the data:
   - Check for expected coverage (should be >99.9%)
   - Verify extended ID handling (should find >50,000 extended IDs)
   - Confirm special H9xxx codes are preserved (approximately 6,000-7,000 occurrences)
+  - Verify critical theological terms meet minimum occurrence requirements
 
 ### Greek NT Processing Issues
 

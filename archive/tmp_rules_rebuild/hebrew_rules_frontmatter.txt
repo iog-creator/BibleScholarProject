@@ -1,0 +1,12 @@
+--- 
+type: always 
+title: Hebrew Processing Rules 
+description: Guidelines for processing Hebrew text and Strong's IDs 
+globs: 
+  - "**/etl/**/*hebrew*.py" 
+  - "src/etl/hebrew_*.py" 
+  - "src/api/lexicon/hebrew_*.py" 
+  - "tests/unit/test_hebrew_*.py" 
+alwaysApply: true 
+--- 
+ 

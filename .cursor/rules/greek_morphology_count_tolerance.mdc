@@ -1,9 +1,123 @@
----
-description: Guidelines for acceptable Greek morphology count tolerances in NT text processing
-globs:
-  - "src/etl/morphology/etl_greek_morphology.py"
-  - "src/tvtms/greek_nt_validator.py"
-  - "tests/integration/test_greek_morphology.py"
-  - "src/etl/greek_*.py"
-alwaysApply: true
----
+--- 
+type: always 
+title: Greek Morphology Count Tolerance 
+description: Guidelines for tolerance levels in Greek morphology code counts 
+globs: 
+  - "src/etl/**/greek_*.py" 
+  - "src/etl/morphology/greek_*.py" 
+  - "tests/unit/test_greek_*.py" 
+alwaysApply: false 
+--- 
+ 
+
+# Greek Morphology Count Tolerance Guidelines
+
+## Expected Greek Morphology Counts
+
+The following are the expected counts for Greek morphological features in the New Testament:
+
+| Feature | Expected Count | Acceptable Tolerance |
+|---------|---------------|---------------------|
+| Verbs | 28,957 | ±100 (0.35%) |
+| Nouns | 36,502 | ±125 (0.34%) |
+| Articles | 19,782 | ±50 (0.25%) |
+| Prepositions | 12,123 | ±40 (0.33%) |
+| Personal Pronouns | 10,935 | ±35 (0.32%) |
+| Conjunctions | 18,338 | ±60 (0.33%) |
+| Participles | 6,572 | ±25 (0.38%) |
+
+## Validation Requirements
+
+1. All Greek NT ETL processes must validate final morphology counts
+2. Counts outside acceptable tolerance ranges must trigger warnings
+3. Counts with >1% deviation must halt processing and log errors
+4. Count validations must occur after any normalization steps
+
+## Implementation Pattern
+
+Use the following pattern to implement morphology count validation:
+
+```python
+def validate_greek_morphology_counts(df, feature_col="morphology"):
+    """
+    Validate Greek morphology counts against expected values
+    
+    Parameters:
+    -----------
+    df : DataFrame
+        DataFrame containing Greek NT morphology data
+    feature_col : str
+        Column containing morphology codes
+        
+    Returns:
+    --------
+    bool
+        Whether all counts are within acceptable tolerances
+    """
+    # Define expected counts and tolerances
+    expected_counts = {
+        "V": {"expected": 28957, "tolerance": 100, "name": "Verbs"},
+        "N": {"expected": 36502, "tolerance": 125, "name": "Nouns"},
+        "T": {"expected": 19782, "tolerance": 50, "name": "Articles"},
+        "P": {"expected": 12123, "tolerance": 40, "name": "Prepositions"},
+        "R": {"expected": 10935, "tolerance": 35, "name": "Personal Pronouns"},
+        "C": {"expected": 18338, "tolerance": 60, "name": "Conjunctions"},
+        "PT": {"expected": 6572, "tolerance": 25, "name": "Participles"}
+    }
+    
+    # Count actual occurrences
+    counts = {}
+    for code, info in expected_counts.items():
+        if code == "PT":
+            # Participles are usually marked with pattern like "V-PAP"
+            counts[code] = df[df[feature_col].str.contains(r"V-\w{2}P", regex=True)].shape[0]
+        else:
+            counts[code] = df[df[feature_col].str.startswith(code)].shape[0]
+    
+    # Validate against acceptable tolerances
+    all_valid = True
+    for code, info in expected_counts.items():
+        actual = counts.get(code, 0)
+        diff = abs(actual - info["expected"])
+        percent_diff = (diff / info["expected"]) * 100
+        
+        if diff > info["tolerance"]:
+            if percent_diff > 1.0:
+                # Critical deviation
+                logger.error(
+                    f"CRITICAL: {info['name']} count {actual} differs from expected {info['expected']} "
+                    f"by {diff} ({percent_diff:.2f}%) - exceeds tolerance of {info['tolerance']}"
+                )
+                all_valid = False
+            else:
+                # Warning level deviation
+                logger.warning(
+                    f"WARNING: {info['name']} count {actual} differs from expected {info['expected']} "
+                    f"by {diff} ({percent_diff:.2f}%) - exceeds tolerance of {info['tolerance']}"
+                )
+        else:
+            logger.info(
+                f"VALID: {info['name']} count {actual} (expected {info['expected']}, "
+                f"diff: {diff}, {percent_diff:.2f}%)"
+            )
+    
+    return all_valid
+```
+
+## Required Actions
+
+1. Always run validation after morphology data processing
+2. Log detailed results of count validation
+3. Include validation reports in ETL process documentation
+4. For critical deviations, implement automatic alerts
+
+## Theological Context
+
+Accurate Greek morphology is critical for proper exegesis of New Testament texts. Morphological features provide vital grammatical context that affects theological interpretation. Maintaining accurate morphology counts ensures data integrity for:
+
+1. Word studies and concordance research
+2. Syntactical analysis of key theological passages
+3. Comparison across different Greek NT sources
+4. Accurate translation validation
+
+

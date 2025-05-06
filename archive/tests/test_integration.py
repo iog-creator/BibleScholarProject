@@ -173,6 +173,58 @@ def test_cross_language_terms():
         print_failure(f"Failed to test cross-language term mappings: {e}")
         return False
 
+def test_esv_bible_integration():
+    """Test the ESV Bible integration."""
+    print_heading("Testing ESV Bible Integration")
+    try:
+        # Test the API endpoint for ESV verse retrieval
+        api_response = requests.get(f"{API_URL}/api/verses?translation=ESV&book=John&chapter=3&verse=16", timeout=API_TIMEOUT)
+        if api_response.status_code == 200:
+            data = api_response.json()
+            if isinstance(data, dict) and 'verse_text' in data:
+                print_success(f"API ESV verse retrieval successful: {data['verse_text'][:30]}...")
+            else:
+                print_failure(f"API ESV verse retrieval returned unexpected data: {data}")
+                return False
+        else:
+            print_failure(f"API ESV verse retrieval returned status code {api_response.status_code}")
+            return False
+
+        # Test the API endpoint for ESV Bible statistics
+        api_response = requests.get(f"{API_URL}/api/stats/bible?translation=ESV", timeout=API_TIMEOUT)
+        if api_response.status_code == 200:
+            data = api_response.json()
+            if isinstance(data, dict) and 'verse_count' in data:
+                print_success(f"API ESV statistics returned {data['verse_count']} verses")
+                
+                # Verify we have at least 23,000 verses (ESV should have around 31,000)
+                if data['verse_count'] < 23000:
+                    print_failure(f"ESV verse count seems too low: {data['verse_count']}")
+                    return False
+            else:
+                print_failure(f"API ESV statistics returned unexpected data: {data}")
+                return False
+        else:
+            print_failure(f"API ESV statistics returned status code {api_response.status_code}")
+            return False
+
+        # Test the web interface for ESV Bible access
+        web_response = requests.get(f"{WEB_URL}/bible?translation=ESV&book=John&chapter=3", timeout=WEB_TIMEOUT)
+        if web_response.status_code == 200:
+            if "ESV" in web_response.text and "John 3" in web_response.text:
+                print_success("Web ESV Bible access page loaded successfully")
+            else:
+                print_failure("Web ESV Bible access page content is incorrect")
+                return False
+        else:
+            print_failure(f"Web ESV Bible access returned status code {web_response.status_code}")
+            return False
+
+        return True
+    except requests.exceptions.RequestException as e:
+        print_failure(f"Failed to test ESV Bible integration: {e}")
+        return False
+
 def run_all_tests():
     """Run all integration tests."""
     print_heading("Running All Integration Tests")
@@ -187,6 +239,7 @@ def run_all_tests():
         results["theological_terms"] = test_theological_terms_report()
         results["critical_terms"] = test_critical_terms_validation()
         results["cross_language"] = test_cross_language_terms()
+        results["esv_bible"] = test_esv_bible_integration()
     
     # Print summary
     print_heading("Test Results Summary")

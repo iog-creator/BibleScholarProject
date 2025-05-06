@@ -1,6 +1,8 @@
 ---
+type: always
+title: Database Test Skip Guidelines
 description: Guidelines for skipping database tests
-globs: 
+globs:
   - "**/tests/**/*db*.py"
   - "**/tests/**/*database*.py"
 alwaysApply: false
@@ -8,4 +10,3 @@ alwaysApply: false
 
 # Database Test Skip Guidelines
 
-This rule provides standards for conditionally skipping database tests.

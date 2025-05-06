@@ -1,6 +1,8 @@
 ---
+type: always
+title: TVTMS Text File Format Guidelines
 description: TVTMS file format handling guidelines
-globs: 
+globs:
   - "**/tvtms/**/*.py"
   - "**/scripts/*tvtms*.py"
 alwaysApply: false
@@ -8,4 +10,3 @@ alwaysApply: false
 
 # TVTMS Text File Format Guidelines
 
-This rule provides standards for working with TVTMS text files.

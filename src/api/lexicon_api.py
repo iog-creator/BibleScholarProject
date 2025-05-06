@@ -11,7 +11,14 @@ import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
 import re
-from src.utils.file_utils import append_dspy_training_example
+import sys
+import json
+from datetime import datetime
+from pathlib import Path
+
+# Add import for user interaction logging
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from scripts.log_user_interactions import log_api_interaction, log_problem_solution, ensure_directories
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +36,9 @@ logger = logging.getLogger('lexicon_api')
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Create necessary directories for logging
+ensure_directories()
 
 # Register cross-language API blueprint
 from src.api.cross_language_api import api_blueprint as cross_language_api
@@ -52,7 +62,53 @@ def get_db_connection():
         logger.error(f"Database connection error: {e}")
         return None
 
+# Add a decorator for API endpoint logging
+def log_api_endpoint(f):
+    """Decorator to log API endpoint calls for DSPy training data."""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            # Get endpoint info
+            endpoint = request.path
+            method = request.method
+            params = dict(request.args)
+            
+            # Capture the response
+            response = f(*args, **kwargs)
+            
+            # Log only successful responses (not errors)
+            if isinstance(response, tuple) and len(response) > 1 and response[1] != 200:
+                success = False
+            else:
+                success = True
+                
+            # Convert response to dict for logging
+            if isinstance(response, tuple):
+                response_data = response[0].get_json()
+            else:
+                response_data = response.get_json()
+                
+            # Log the API interaction
+            log_api_interaction(
+                endpoint=endpoint,
+                method=method,
+                params=params,
+                response=response_data,
+                success=success
+            )
+            
+        except Exception as e:
+            logger.error(f"Error logging API interaction: {e}")
+            
+        return response
+    
+    return decorated_function
+
+# Apply the decorator to the API endpoints
 @app.route('/api/lexicon/stats', methods=['GET'])
+@log_api_endpoint
 def get_lexicon_stats():
     """
     Get statistics about the lexicon data.

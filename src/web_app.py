@@ -12,6 +12,11 @@ from dotenv import load_dotenv
 import requests
 import pandas as pd
 from datetime import datetime
+import sys
+
+# Import user interaction logging
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from scripts.log_user_interactions import log_web_interaction, log_question_answer, ensure_directories
 
 # Import the external resources blueprint
 from api.external_resources_api import external_resources_bp
@@ -36,6 +41,9 @@ logger = logging.getLogger('web_app')
 # Initialize Flask app
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates'))
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key')
+
+# Create necessary directories for logging
+ensure_directories()
 
 # Register the external resources blueprint
 app.register_blueprint(external_resources_bp)
@@ -1068,6 +1076,51 @@ def health_check():
 
 # Create templates directory if it doesn't exist
 os.makedirs('templates', exist_ok=True)
+
+# Web interaction logging decorator
+def log_web_request(f):
+    """Decorator to log web page interactions for DSPy training data."""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            # Get route info
+            route = request.path
+            query_params = dict(request.args)
+            
+            # Only log non-static requests with meaningful paths
+            if (not route.startswith('/static') and 
+                not route == '/health' and 
+                not route == '/favicon.ico'):
+                
+                # Process the request
+                response = f(*args, **kwargs)
+                
+                # Determine response type
+                if hasattr(response, 'template_name'):
+                    response_type = f"template:{response.template_name}"
+                elif isinstance(response, str):
+                    response_type = "html"
+                else:
+                    response_type = "json" if hasattr(response, 'get_json') else "other"
+                
+                # Log the web interaction
+                log_web_interaction(
+                    route=route,
+                    query_params=query_params,
+                    response_type=response_type
+                )
+                
+                return response
+            else:
+                return f(*args, **kwargs)
+            
+        except Exception as e:
+            logger.error(f"Error logging web interaction: {e}")
+            return f(*args, **kwargs)
+    
+    return decorated_function
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001) 

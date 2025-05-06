@@ -1,0 +1,15 @@
+--- 
+type: always 
+title: ESV Bible Processing Guidelines 
+description: Standards for processing ESV Bible data in the BibleScholarProject 
+globs: 
+  - "src/etl/etl_english_bible.py" 
+  - "src/api/*/english_*.py" 
+  - "tests/unit/test_*esv*.py" 
+  - "tests/integration/test_*esv*.py" 
+alwaysApply: false 
+--- 
+ 
+
+
+

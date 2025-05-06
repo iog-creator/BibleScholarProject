@@ -1,0 +1,12 @@
+--- 
+type: always 
+title: Public Domain Bible Processing 
+description: Guidelines for processing public domain Bible translations (KJV, ASV, WEB) 
+globs: 
+  - "load_kjv_bible.py" 
+  - "load_asv_bible.py" 
+  - "load_public_domain_bibles.py" 
+  - "src/etl/public_domain_*.py" 
+alwaysApply: false 
+--- 
+ 
