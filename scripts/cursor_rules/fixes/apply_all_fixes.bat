@@ -16,4 +16,10 @@ call %~dp0fix_hebrew_rules.bat
 echo Fixing theological_terms...
 call %~dp0fix_theological_terms.bat
 
+echo Fixing comprehensive_search...
+call %~dp0fix_comprehensive_search.bat
+
+echo Fixing comprehensive_semantic_search...
+call %~dp0fix_comprehensive_semantic_search.bat
+
 echo All fixes applied successfully!

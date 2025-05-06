@@ -1,5 +1,11 @@
 ---
-description:
+type: always
+title: Comprehensive Search
+description: Guidelines for implementing comprehensive semantic search across all Bible database resources
 globs:
+  - 
+src/api/comprehensive_search/*.py
+  - tests/integration/test_comprehensive_search/*.py
 alwaysApply: false
 ---
+
