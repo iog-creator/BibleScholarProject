@@ -91,5 +91,14 @@ API endpoints are implemented in:
 - `src/web_app.py` - Web interface frontend routes
 
 When running in development mode:
-1. Start the lexicon API: `python src/api/lexicon_api.py`
-2. Start the web app: `python src/web_app.py` 
+1. Start both servers with: `python start_servers.py`
+2. Or start individual servers:
+   - API server only: `python start_servers.py --api-only`
+   - Web server only: `python start_servers.py --web-only`
+3. Customize ports:
+   - API port: `python start_servers.py --api-port 8000`
+   - Web port: `python start_servers.py --web-port 8001`
+
+The API server starts on http://localhost:5000 by default and the web server on http://localhost:5001.
+
+> **Note**: The Flask applications are configured as `src.api.lexicon_api:app` for the API server and `src.web_app` for the web server. 

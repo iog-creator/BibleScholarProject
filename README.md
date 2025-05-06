@@ -75,6 +75,22 @@ This will start:
 - API server on http://localhost:5000
 - Web server on http://localhost:5001
 
+You can also start individual servers:
+```bash
+# Start only the API server
+python start_servers.py --api-only
+
+# Start only the web server
+python start_servers.py --web-only
+
+# Customize ports
+python start_servers.py --api-port 8000 --web-port 8001
+```
+
+The servers use Flask applications configured as:
+- API: `src.api.lexicon_api:app`
+- Web: `src.web_app`
+
 ### API Usage
 
 Access the API endpoints:
@@ -90,7 +106,7 @@ curl http://localhost:5000/api/lexicon/search?q=beginning&lang=hebrew
 curl http://localhost:5000/api/morphology/hebrew/Ncmsc
 ```
 
-See the [API documentation](docs/API.md) for more details.
+See the [API documentation](docs/API_REFERENCE.md) for more details.
 
 ### Web Interface
 

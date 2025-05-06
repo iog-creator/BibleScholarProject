@@ -172,4 +172,32 @@ python start_servers.py
 make run-api
 ```
 
-The API server runs on http://localhost:5000 by default. 
+The API server runs on http://localhost:5000 by default.
+
+### Flask App Configuration
+
+The API server is configured using the Flask application specified as:
+
+```
+src.api.lexicon_api:app
+```
+
+This notation tells Flask to:
+1. Import the module `src.api.lexicon_api`
+2. Look for the Flask application instance named `app` in that module
+
+If you're manually running the Flask application:
+
+```bash
+# Proper way to run the API server
+export FLASK_APP=src.api.lexicon_api:app
+flask run
+```
+
+For Windows PowerShell:
+```powershell
+$env:FLASK_APP="src.api.lexicon_api:app"
+flask run
+```
+
+This configuration ensures that the correct Flask application instance is found and used. 
