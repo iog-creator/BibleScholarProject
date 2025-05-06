@@ -1,138 +1,110 @@
-# DSPy Training Data for BibleScholarProject
+# DSPy Training Data
 
-This directory contains training data files for DSPy-based AI model development in the BibleScholarProject.
+This directory contains training data for DSPy models. The data is used to train documentation organizers, QA systems, and semantic search components.
 
-## File Listing and Contents
+## Available Datasets
 
-- `qa_dataset.jsonl`: 104 examples
-- `summarization_dataset.jsonl`: 3 examples
-- `translation_dataset.jsonl`: 16 examples
-- `theological_terms_dataset.jsonl`: 100 examples
-- `ner_dataset.jsonl`: 86 examples
-- `web_interaction_dataset.jsonl`: 13 examples
-- `evaluation_metrics.jsonl`: 2 examples
-- `tvtms_parsing_examples.jsonl`: (TVTMS versification mapping examples) examples
-- `versification_parser_schema_issues.jsonl`: (Versification parser issues) examples
+| Dataset | Description | Examples | Format |
+|---------|-------------|----------|--------|
+| `documentation_organization_dataset.jsonl` | Examples of documentation organization problems and solutions | 5 | `{"input": "problem", "output": "solution"}` |
+| `documentation_organization_formatted.jsonl` | Formatted data for the documentation organizer | 5 | Custom DSPy format |
+| `qa_dataset.jsonl` | Question-answer pairs about Bible verses | 104 | `{"context": "verse", "question": "q", "answer": "a"}` |
+| `summarization_dataset.jsonl` | Bible passage summarization examples | 3 | `{"passage": "text", "summary": "summary"}` |
+| `theological_terms_dataset.jsonl` | Theological term analysis | 100 | `{"term": {}, "analysis": {}}` |
+| `translation_dataset.jsonl` | Cross-language translation examples | 19 | `{"source": "text", "target": "translation"}` |
+| `ner_dataset.jsonl` | Named entity recognition examples | 89 | `{"text": "passage", "entities": []}` |
+| `user_interactions_dataset.jsonl` | User interaction examples | 10 | `{"query": "q", "response": "r"}` |
+| `web_interaction_dataset.jsonl` | Web UI interaction examples | 22 | `{"interaction": "type", "data": {}}` |
+| `tvtms_parsing_examples.jsonl` | TVTMS parser examples | 6 | `{"input": "raw", "output": "parsed"}` |
+| `evaluation_metrics.jsonl` | DSPy evaluation metrics | 7 | `{"metric_name": "name", "implementation": "code"}` |
 
-## Schema
+## Model Metrics
 
-Each file is a JSONL file (one JSON object per line) with task-specific fields:
+The `metrics/` directory contains tracking data for trained DSPy models:
 
-### Question-Answering (QA)
-```json
-{
-  "context": "Bible verse text",
-  "question": "Question about the verse",
-  "answer": "Answer to the question",
-  "metadata": {"book": "Genesis", "chapter": 1, "verse": 1}
-}
-```
+| Metrics File | Description |
+|--------------|-------------|
+| `documentation_organizer_metrics.jsonl` | Metrics for the documentation organizer model |
+| `qa_model_metrics.jsonl` | Metrics for the Bible QA model |
+| `theological_analyzer_metrics.jsonl` | Metrics for the theological term analyzer |
 
-### Summarization
-```json
-{
-  "passage": "Bible passage text",
-  "summary": "Summary of the passage",
-  "metadata": {"book": "Genesis", "chapter": 1, "verses": [1, 2]}
-}
-```
+Each metrics file contains JSONL entries with:
+- Performance metrics (accuracy, F1, etc.)
+- Dataset version hashes
+- Model parameters
+- Timestamps and version numbers
 
-### Translation
-```json
-{
-  "source": "Original language text",
-  "target": "Translated text",
-  "metadata": {"book": "Genesis", "chapter": 1, "verse": 1, "source_language": "Hebrew", "target_language": "English"}
-}
-```
+## Usage
 
-### Theological Terms
-```json
-{
-  "term": {"word": "אלהים", "strongs_id": "H430", "lemma": "אלהים", "gloss": "God"},
-  "context": {"verse_text": "In the beginning God created...", "book": "Genesis", "chapter": 1, "verse": 1},
-  "analysis": {"theological_meaning": "Elohim", "importance": "Core theological term"}
-}
-```
-
-### Named Entity Recognition
-```json
-{
-  "tokens": ["In", "the", "beginning", "God", "created"],
-  "tags": ["O", "O", "O", "DEITY", "O"],
-  "metadata": {"book": "Genesis", "chapter": 1, "verse": 1}
-}
-```
-
-### Web Interaction
-```json
-{
-  "query": "Find verses containing YHWH",
-  "action": "search_database",
-  "parameters": {"book": "Genesis", "term": "YHWH", "strongs_id": "H3068"},
-  "expected_response_format": {"results": [{"reference": "Gen 2:4", "text": "..."}]},
-  "metadata": {"interaction_type": "database_query"}
-}
-```
-
-### Evaluation Metrics
-```json
-{
-  "task": "bible_qa",
-  "metric_name": "theological_accuracy",
-  "metric_implementation": "def theological_accuracy(prediction, reference): ...",
-  "metadata": {"metric_type": "accuracy", "theological_focus": true}
-}
-```
-
-## Using with DSPy
+### Loading Datasets
 
 ```python
-import dspy
 import json
+import dspy
 
-# Basic loading of examples
-with open('data/processed/dspy_training_data/qa_dataset.jsonl') as f:
-    trainset = [dspy.Example(**json.loads(line)) for line in f if not line.startswith('//') and line.strip()]
+def load_examples(filepath):
+    examples = []
+    with open(filepath, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('//') or not line.strip():
+                continue
+            data = json.loads(line)
+            example = dspy.Example(**data)
+            examples.append(example)
+    return examples
 
-# Using DSPy for model optimization
-from dspy.teleprompt import SIMBA
-optimizer = SIMBA(metric="theological_accuracy")
-optimized_model = optimizer.optimize(model, trainset=trainset)
+# Load documentation organization examples
+documentation_examples = load_examples('data/processed/dspy_training_data/documentation_organization_dataset.jsonl')
 ```
 
-## Optimization and Autonomous Interface Interaction
+### Data Generation
 
-The `web_interaction_dataset.jsonl` contains examples specifically designed for training models to interact with web interfaces. Combined with DSPy's optimization capabilities, this allows for training autonomous agents that can:
+The datasets are generated and refreshed using:
 
-1. Parse user queries related to biblical content
-2. Determine the appropriate API action to take
-3. Extract the correct parameters from the query
-4. Format and validate the response
+```bash
+# Check current status
+python scripts/refresh_dspy_data.py status
 
-### Example DSPy Agent Setup
+# Force regeneration of all datasets
+python scripts/refresh_dspy_data.py refresh
 
-```python
-class BibleSearchAgent(dspy.Module):
-    def __init__(self):
-        super().__init__()
-        self.query_parser = dspy.ChainOfThought("context, query -> action, parameters")
-        
-    def forward(self, query):
-        # Parse the query to determine action and parameters
-        parsed = self.query_parser(context="Biblical research assistant", query=query)
-        
-        # Execute the appropriate action
-        if parsed.action == "search_database":
-            results = search_bible_database(**parsed.parameters)
-            return {"results": results}
-        elif parsed.action == "lookup_strongs":
-            definition = lookup_strongs_entry(**parsed.parameters)
-            return {"definition": definition}
-        # ... other actions
+# Regenerate specific dataset types
+python scripts/refresh_dspy_data.py refresh --type qa,theological
 ```
 
-## Generation
+### Model Tracking
 
-Generated on 2025-05-05 19:53:46
-To regenerate this data, run `python scripts/generate_dspy_training_data.py`
+Track model metrics using:
+
+```bash
+# Record model metrics
+python scripts/track_dspy_model_metrics.py record --model-name doc_organizer --metrics metrics.json
+
+# Generate performance report
+python scripts/track_dspy_model_metrics.py report --model-name doc_organizer
+```
+
+Or use the integrated tracking in optimization scripts:
+
+```bash
+# Train with automatic metrics tracking
+python scripts/optimize_documentation_organizer.py --track-metrics
+```
+
+## Standards
+
+1. All dataset files should:
+   - Include comments at the top with generation date
+   - Use consistent JSON field naming
+   - Include appropriate metadata fields
+   - Follow the prescribed format for the task
+
+2. Versioning:
+   - Dataset versions are tracked via file hashes in `.state.json`
+   - Model versions are tracked in metrics files
+   - Changes to datasets should be documented
+
+3. Format validation:
+   - Use the validation script to check dataset integrity
+   - Ensure all required fields are present
+   - Verify theological accuracy when applicable

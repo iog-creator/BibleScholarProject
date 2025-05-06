@@ -185,6 +185,34 @@ python -m src.utils.vector_search_demo
 ```
 This runs a simple web interface on http://localhost:5050 that compares semantic search with traditional keyword search.
 
+## DSPy Integration
+
+The BibleScholarProject uses DSPy for building and optimizing AI models that work with Bible data. DSPy provides a systematic way to create, optimize, and deploy language model applications.
+
+### Key Features
+
+- **Automatic Prompt Optimization**: DSPy automatically optimizes prompts using examples
+- **Composable Modules**: Create reusable components for common NLP tasks
+- **Metric-Driven Evaluation**: Develop custom metrics for theological accuracy
+
+### Documentation and Training Data
+
+- [DSPy Usage Guide](docs/features/dspy_usage.md): Comprehensive guide to using DSPy in this project
+- [Documentation Organization Module](src/utils/documentation_organizer.py): Specialized DSPy module for documentation improvement
+- [Training Data](data/processed/dspy_training_data/): JSONL files with examples for training models
+
+### Getting Started with DSPy
+
+```bash
+# Train a documentation organization model
+python scripts/optimize_documentation_organizer.py --optimizer bootstrap
+
+# Explore the documentation organization dataset
+python scripts/train_documentation_patterns.py
+```
+
+See the [DSPy Usage Guide](docs/features/dspy_usage.md) for comprehensive documentation.
+
 ## Development
 
 ### Project Structure
