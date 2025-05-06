@@ -2,6 +2,10 @@
 
 This document provides details on the Bible translations available in the BibleScholarProject database.
 
+## Overview and Purpose
+
+The BibleScholarProject provides access to multiple Bible translations to support comparative study and analysis. This document serves as the single source of truth for all translation-related information in the project, including available translations, their characteristics, loading processes, and usage guidelines.
+
 ## Available Translations
 
 | Translation | Description | Verse Count | Source Type | Language |
@@ -11,6 +15,43 @@ This document provides details on the Bible translations available in the BibleS
 | ESV | English Standard Version | 4 (sample) | Licensed | English |
 | TAGNT | Translators Amalgamated Greek NT | 7,958 | Open License | Greek |
 | TAHOT | Translators Amalgamated Hebrew OT | 23,261 | Open License | Hebrew |
+
+## Technical Implementation Details
+
+### Database Structure
+
+Bible translations are stored in the `bible.verses` table with the following schema:
+
+```sql
+CREATE TABLE bible.verses (
+    verse_id SERIAL PRIMARY KEY,
+    book_name VARCHAR(50) NOT NULL,
+    chapter_num INTEGER NOT NULL,
+    verse_num INTEGER NOT NULL,
+    verse_text TEXT NOT NULL,
+    translation_source VARCHAR(20) NOT NULL,
+    UNIQUE(book_name, chapter_num, verse_num, translation_source)
+);
+```
+
+The `translation_source` field identifies which translation a particular verse belongs to.
+
+### Loading Process
+
+Each translation follows a specific loading process:
+
+1. **Public Domain Translations**: Loaded through dedicated scripts in the `src/etl/` directory
+2. **Licensed Translations**: Sample data loaded through secure ETL processes
+3. **Original Language Texts**: Parsed from STEPBible-Data repository using specialized parsers
+
+### Integration with Strong's Numbers
+
+For translations with Strong's number tagging (ESV, TAGNT, TAHOT):
+- Strong's data format follows pattern: `word {HnnnnX}` where:
+  - H is the language prefix (H for Hebrew, G for Greek)
+  - nnnn is the Strong's number
+  - X represents any optional extensions
+- The ETL process preserves Strong's numbers as references in the `bible.word_strongs` table
 
 ## Translation Details
 
@@ -58,13 +99,6 @@ For God so loved the world, that he gave his only begotten Son, that whosoever b
 - Tagged version includes Strong's number references
 - Loaded via `load_esv_bible.py`
 
-**Integration Details**:
-- Modified database schema to support multiple translations per verse
-- Added translation_source to unique constraints
-- Enhanced tests to validate ESV data integrity
-- Created dedicated test module (test_esv_bible_data.py)
-- Strong's number mapping maintained where available
-
 **Technical Considerations**:
 - ESV text with Strong's tagging follows format: `word {HnnnnX}` where H is the language prefix and X is any optional extensions
 - Requires special parsing for preserving Strong's numbers and morphological information
@@ -100,16 +134,7 @@ For God so loved the world, that he gave his only Son, that whoever believes in 
 **Data Source**:
 - STEPBible-Data: `Translators Amalgamated OT+NT/TAHOT - Translators Amalgamated Hebrew OT - TyndaleHouse.com STEPBible.org CC BY.txt`
 
-## Adding New Translations
-
-When adding new translations to the database:
-
-1. **Public Domain Translations**: Use the loading pattern in `load_kjv_bible.py` or `direct_asv_download.py`
-2. **Licensed Translations**: Ensure proper licensing is in place before inclusion
-3. **Storage Format**: All translations should be stored in the `bible.verses` table with proper `translation_source` identifier
-4. **Validation**: Verify the expected verse count after loading
-
-## Usage Guidelines
+## Usage Examples
 
 ### API Access
 
@@ -129,7 +154,7 @@ To compare translations side-by-side, use the comparison endpoint:
 /api/compare?book=BookName&chapter=N&verse=N&translations=KJV,ASV
 ```
 
-### Search
+### Search Across Translations
 
 To search across all translations or specific translations:
 
@@ -138,6 +163,53 @@ To search across all translations or specific translations:
 ```
 
 If no `translations` parameter is provided, search will be performed across all available translations.
+
+### Code Example - Loading a Verse
+
+```python
+from src.database.db_connector import get_db_connection
+
+def get_verse(book, chapter, verse, translation="KJV"):
+    """
+    Retrieve a verse from a specific translation
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = """
+        SELECT verse_text 
+        FROM bible.verses 
+        WHERE book_name = %s 
+        AND chapter_num = %s 
+        AND verse_num = %s 
+        AND translation_source = %s
+    """
+    
+    cursor.execute(query, (book, chapter, verse, translation))
+    result = cursor.fetchone()
+    
+    conn.close()
+    return result[0] if result else None
+```
+
+## Troubleshooting
+
+### Missing Verses
+
+If a verse appears to be missing from a particular translation:
+
+1. Verify the book name spelling (e.g., "Psalms" not "Psalm")
+2. Check for versification differences between translations
+3. Use the verification query below to confirm if the verse exists in the database
+
+### Translation Loading Issues
+
+If encountering issues when loading a new translation:
+
+1. Ensure the source data is properly formatted
+2. Validate the ETL script's parsing logic against the source format
+3. Check for special characters or encoding issues in the source data
+4. Run test queries to verify successful loading
 
 ## Verification Queries
 
@@ -158,3 +230,20 @@ FROM bible.verses
 WHERE book_name = 'John' AND chapter_num = 3 AND verse_num = 16
 ORDER BY translation_source;
 ``` 
+
+## Related Documentation
+
+- See [Database Schema](../reference/DATABASE_SCHEMA.md) for details on the database structure
+- See [API Reference](../reference/API_REFERENCE.md) for all translation-related API endpoints
+- See [ETL Pipeline](../features/etl_pipeline.md) for information on the translation loading process
+
+This document is complemented by the [public_domain_bible_processing](.cursor/rules/features/public_domain_bible_processing.mdc) and [esv_bible_processing](.cursor/rules/features/esv_bible_processing.mdc) cursor rules.
+
+## Modification History
+
+| Date | Author | Description |
+|------|--------|-------------|
+| 2023-08-10 | Initial Author | Initial documentation of KJV and ASV translations |
+| 2023-10-15 | Project Team | Added ESV sample documentation |
+| 2023-11-20 | Project Team | Added TAGNT and TAHOT documentation |
+| 2024-07-16 | AI Assistant | Consolidated into unified documentation under new structure | 

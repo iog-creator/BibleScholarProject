@@ -1,0 +1,12 @@
+type: always
+title: DSPy Generation
+description: Guidelines for DSPy training data generation and collection
+globs:
+  - "tests/**/dspy*.py"
+  - "src/**/dspy*.py"
+alwaysApply: false
+---
+
+# DSPy Training Data Generation Guidelines
+
+For comprehensive documentation, see [DSPy Usage](docs/features/dspy_usage.md).

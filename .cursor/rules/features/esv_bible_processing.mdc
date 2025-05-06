@@ -1,0 +1,129 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# ESV Bible Processing Guidelines
+
+## Glob Patterns
+
+- src/etl/etl_english_bible.py
+- src/api/*/english_*.py
+- tests/unit/test_*esv*.py
+- tests/integration/test_*esv*.py
+
+## ESV Bible Data Structure
+
+### Overview
+The ESV Bible file (TTESV) contains tagged text with verse references followed by the verse text.
+
+### File Location
+The ESV Bible file should be located at:
+```
+STEPBible-Data/Tagged-Bibles/TTESV - Tyndale Translation tags for ESV - TyndaleHouse.com STEPBible.org CC BY-NC.txt
+```
+
+### File Format
+
+1. Each verse begins with a reference in the format: `BookAbbr.Chapter.Verse`
+   - Example: `Jhn.3.16`
+
+2. The verse text follows the reference, either on the same line or on subsequent lines.
+
+3. Lines starting with `#` contain metadata or Strong's number information and should be ignored for verse text extraction.
+
+4. Book abbreviations must be mapped to full book names using the standard abbreviation mapping.
+
+### Database Storage
+
+1. ESV verses should be stored in the `bible.verses` table with:
+   - `translation_source` set to 'ESV'
+   - Proper book name, chapter number, and verse number
+   - Complete verse text
+
+2. The table schema for ESV storage:
+   ```sql
+   CREATE TABLE IF NOT EXISTS bible.verses (
+     id SERIAL PRIMARY KEY,
+     book_name VARCHAR(50) NOT NULL,
+     chapter_num INTEGER NOT NULL,
+     verse_num INTEGER NOT NULL,
+     verse_text TEXT NOT NULL,
+     translation_source VARCHAR(20) NOT NULL,
+     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     UNIQUE(book_name, chapter_num, verse_num, translation_source)
+   );
+   ```
+
+### Processing Requirements
+
+1. **Error Handling**: All ESV processing must include robust error handling with precise error messages.
+
+2. **Duplicate Prevention**: Use upsert operations to prevent duplicate verses while allowing updates to existing verses.
+
+3. **Transaction Handling**: All database operations must use proper transaction handling to ensure data integrity.
+
+4. **Performance Optimization**: Process the ESV file efficiently, minimizing memory usage for large files.
+
+5. **Verification**: After loading, verify verse counts by book to ensure completeness.
+
+6. **Logging**: Maintain detailed logs of the ESV loading process for debugging and audit purposes.
+
+## Integration Guidelines
+
+### API Access
+
+1. All ESV verses should be accessible through the standard verse API:
+   ```
+   /api/verses?translation=ESV&book=BookName&chapter=N&verse=N
+   ```
+
+2. Search endpoints should include ESV text when appropriate:
+   ```
+   /api/search?text=QueryText&translation=ESV
+   ```
+
+### Web Interface
+
+1. The web interface should allow users to select ESV as their preferred translation.
+
+2. Verse displays should clearly indicate when showing ESV text and include proper attribution.
+
+3. Standard ESV attribution:
+   ```
+   Scripture quotations marked "ESV" are from the ESV® Bible (The Holy Bible, English Standard Version®), 
+   copyright © 2001 by Crossway Bibles, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.
+   ```
+
+### Testing Requirements
+
+1. Unit tests should verify:
+   - Correct parsing of ESV verses
+   - Proper book abbreviation mapping
+   - Handling of special formatting cases
+
+2. Integration tests should verify:
+   - Complete database loading
+   - Accurate verse retrieval
+   - Proper API response formatting
+
+## Copyright Compliance
+
+When working with ESV text, strictly adhere to copyright requirements:
+
+1. Always include proper attribution
+2. Respect the limitations on how much text can be displayed
+3. Never modify the ESV text content
+4. Include copyright notices in user-facing displays
+
+## Quick Reference
+
+- Translation code: 'ESV'
+- Database table: bible.verses
+- Key file: src/etl/etl_english_bible.py
+- Verification query:
+  ```sql
+  SELECT COUNT(*) FROM bible.verses WHERE translation_source = 'ESV';
+  -- Should return approximately 31,000
+  ```

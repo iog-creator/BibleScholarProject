@@ -1,0 +1,10 @@
+---
+description: Expected count validations for TVTMS processing
+globs: 
+  - "**/tvtms/**/*.py"
+  - "**/scripts/*tvtms*.py"
+# TVTMS Expected Count Validation
+
+This rule provides guidelines for validating TVTMS mapping counts.
+
+This rule provides guidelines for validating TVTMS mapping counts.

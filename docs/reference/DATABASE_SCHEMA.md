@@ -2,7 +2,9 @@
 
 This document outlines the database schema used in the BibleScholarProject. All tables are stored in the PostgreSQL database under the `bible_db` database.
 
-## Schema Overview
+*This document is complemented by the [database_access](.cursor/rules/standards/database_access.mdc) cursor rule.*
+
+## Overview
 
 The database uses the `bible` schema for all tables. The main schema components include:
 
@@ -10,6 +12,7 @@ The database uses the `bible` schema for all tables. The main schema components 
 2. **Lexicon Tables** - Hebrew and Greek lexical entries
 3. **Word Analysis Tables** - Detailed word-level analysis including morphology and Strong's IDs
 4. **Versification Tables** - Tables for managing different versification systems
+5. **Vector Search Tables** - Tables for semantic search functionality using pgvector
 
 ## Core Tables
 
@@ -143,6 +146,25 @@ Maps verses between different versification systems.
 | target_chapter | INTEGER | Chapter in target system |
 | target_verse | INTEGER | Verse in target system |
 
+### Vector Search Tables
+
+#### `bible.verse_embeddings`
+
+Stores vector embeddings for semantic search.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| verse_id | INTEGER | Primary key, foreign key to verses table |
+| book_name | VARCHAR(50) | Book name |
+| chapter_num | INTEGER | Chapter number |
+| verse_num | INTEGER | Verse number |
+| translation_source | VARCHAR(10) | Translation identifier |
+| embedding | vector(768) | 768-dimensional vector embedding |
+
+**Constraints:**
+- Primary key on verse_id
+- IVFFlat index on embedding for efficient similarity search
+
 ## Critical Theological Term Constraints
 
 For theological term analysis, the database must maintain minimum counts for critical terms:
@@ -177,7 +199,9 @@ The schema can be verified using the `check_db_schema.py` script:
 python check_db_schema.py
 ```
 
-## Translation Comparison Queries
+## Example Queries
+
+### Translation Comparison
 
 To compare the same verse across different translations:
 
@@ -188,7 +212,7 @@ WHERE book_name = 'John' AND chapter_num = 3 AND verse_num = 16
 ORDER BY translation_source;
 ```
 
-## Verse Count Verification
+### Verse Count Verification
 
 To verify the expected verse counts for each translation:
 
@@ -203,4 +227,31 @@ Expected counts:
 - KJV: 31,100
 - ASV: 31,103
 - TAGNT: 7,958
-- TAHOT: 23,261 
+- TAHOT: 23,261
+
+### Semantic Search
+
+To find verses semantically similar to a given vector:
+
+```sql
+SELECT v.book_name, v.chapter_num, v.verse_num, v.verse_text, 
+       1 - (e.embedding <=> %s::vector) AS similarity
+FROM bible.verse_embeddings e
+JOIN bible.verses v ON e.verse_id = v.id
+WHERE v.translation_source = 'KJV'
+ORDER BY e.embedding <=> %s::vector
+LIMIT 10;
+```
+
+## Related Documentation
+
+- [API Reference](API_REFERENCE.md) - API endpoints for database access
+- [Semantic Search](../features/semantic_search.md) - Semantic search using pgvector
+- [Theological Terms](../features/theological_terms.md) - Theological term handling
+
+## Modification History
+
+| Date | Change | Author |
+|------|--------|--------|
+| 2025-05-06 | Added vector search tables and reorganized documentation | BibleScholar Team |
+| 2025-05-01 | Initial schema documentation | BibleScholar Team | 

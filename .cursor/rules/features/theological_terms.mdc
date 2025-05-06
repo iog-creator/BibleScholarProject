@@ -1,0 +1,12 @@
+type: always
+title: Theological Terms
+description: Guidelines for Hebrew theological term handling
+globs:
+  - "src/etl/**/*term*.py"
+  - "src/api/**/*theological*.py"
+alwaysApply: false
+---
+
+# Theological Terms Standardization Guidelines
+
+For comprehensive documentation, see [Theological Terms](docs/features/theological_terms.md).

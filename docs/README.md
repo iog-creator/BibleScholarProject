@@ -1,104 +1,54 @@
 # BibleScholarProject Documentation
 
-Welcome to the BibleScholarProject documentation. This project provides tools for advanced Bible research and analysis with a focus on computational linguistics and theological term analysis.
+Welcome to the BibleScholarProject documentation! This directory contains comprehensive documentation for all aspects of the project.
 
-## Documentation Index
+## Directory Structure
 
-### Core Documentation
+- [`features/`](features/) - Feature-specific documentation
+  - [`bible_translations.md`](features/bible_translations.md) - Bible translation processing and access
+  - [`dspy_usage.md`](features/dspy_usage.md) - DSPy training and model usage
+  - [`etl_pipeline.md`](features/etl_pipeline.md) - ETL process for Bible data
+  - [`semantic_search.md`](features/semantic_search.md) - Semantic search with pgvector
+  - [`theological_terms.md`](features/theological_terms.md) - Theological term handling
 
-- [**STEPBible Explorer System Build Guide**](STEPBible_Explorer_System_Build_Guide.md) - Comprehensive guide to the system
-- [**API Reference**](API_REFERENCE.md) - Complete documentation of API endpoints
-- [**Database Schema**](DATABASE_SCHEMA.md) - Database structure and relationships
-- [**Data Verification**](DATA_VERIFICATION.md) - Data verification processes and procedures
-- [**Documentation Usage**](rules/documentation_usage.md) - Guidelines for using and maintaining documentation
+- [`guides/`](guides/) - How-to guides and tutorials
+  - [`data_verification.md`](guides/data_verification.md) - Verifying data quality and integrity
+  - [`documentation_maintenance.md`](guides/documentation_maintenance.md) - Maintaining project documentation
+  - [`dspy_training_guide.md`](guides/dspy_training_guide.md) - Guide for DSPy training
+  - [`system_build_guide.md`](guides/system_build_guide.md) - Building the complete system
+  - [`testing_framework.md`](guides/testing_framework.md) - Using the testing framework
 
-### Development Guidelines
+- [`reference/`](reference/) - Reference documentation
+  - [`API_REFERENCE.md`](reference/API_REFERENCE.md) - API endpoints and usage
+  - [`DATABASE_SCHEMA.md`](reference/DATABASE_SCHEMA.md) - Database schema reference
+  - [`SYSTEM_ARCHITECTURE.md`](reference/SYSTEM_ARCHITECTURE.md) - System architecture overview
+  - [`cursor_rules_guide.md`](reference/cursor_rules_guide.md) - Guide for cursor rules
+  - [`organization_reference.md`](reference/organization_reference.md) - Project organization standards
+  - [`rule_mapping.md`](reference/rule_mapping.md) - Mapping of old to new rule locations
+  - [`vector_search_reference.md`](reference/vector_search_reference.md) - Vector search reference
+  - [`rules/`](reference/rules/) - Standards and rules reference
 
-- [**Rules Overview**](rules/README.md) - Index of all development and processing rules
-- [**DSPy Training Guide**](dspy_training_guide.md) - Guide for AI training data generation
+- [`archive/`](archive/) - Archived documentation
+  - Contains older versions of documentation for reference
 
-### Rules Documentation
+## Key Documentation
 
-#### Theological Rules
-- [**Theological Terms**](rules/theological_terms.md) - Guidelines for theological term handling
-- [**Hebrew Rules**](rules/hebrew_rules.md) - Special handling rules for Hebrew text
+- [**Contributing Guide**](CONTRIBUTING.md) - Guidelines for contributing to the project
+- [**Feature Documentation**](features/) - Documentation for all major features
+- [**API Reference**](reference/API_REFERENCE.md) - Complete API documentation
 
-#### ETL and Data Processing
-- [**ETL Rules**](rules/etl_rules.md) - Standards for data extraction and loading
-- [**TVTMS Rules**](rules/tvtms_rules.md) - Versification mapping guidelines
-- [**Parser Strictness**](rules/parser_strictness.md) - Parser configuration guidelines
+## Development Workflow
 
-#### Database Rules
-- [**Database Access**](rules/database_access.md) - Database access patterns
-- [**Database Testing**](rules/db_test_skip.md) - Database testing guidelines
+For details on the development workflow, please refer to the [Contributing Guide](CONTRIBUTING.md).
 
-#### Development Standards
-- [**Import Structure**](rules/import_structure.md) - Python import organization
-- [**DataFrame Handling**](rules/dataframe_handling.md) - Pandas operations guidelines
-- [**Model Validation**](rules/model_validation.md) - ML model validation standards
+## Documentation Standards
 
-### AI Integration
+The BibleScholarProject follows strict documentation standards:
 
-- [**DSPy Generation**](rules/dspy_generation.md) - DSPy training data generation guidelines
-- [**Cursor Rules**](./.cursor/rules/README.md) - AI-assisted development rules
+1. **Single Source of Truth** - Each component/feature has one primary document
+2. **Consistent Structure** - All documents follow consistent formatting and structure
+3. **Cross-Referencing** - Related documents link to each other with relative links
+4. **Validation** - Documentation is validated for broken links and completeness
+5. **Version Control** - Documentation is versioned with the codebase
 
-## Quick Start
-
-To get started with the BibleScholarProject:
-
-1. Set up your database:
-   ```
-   python check_db_schema.py
-   ```
-
-2. Start the API server:
-   ```
-   python src/api/lexicon_api.py
-   ```
-
-3. Start the web interface:
-   ```
-   python src/web_app.py
-   ```
-
-## API Endpoints
-
-The main API endpoints are:
-
-- `/api/theological_terms_report` - Report on theological terms
-- `/api/lexicon/hebrew/validate_critical_terms` - Validate critical Hebrew terms
-- `/api/cross_language/terms` - Cross-language terms comparison
-
-See the [API Reference](API_REFERENCE.md) for complete documentation.
-
-## Theological Term Analysis
-
-The project focuses on analyzing key theological terms across languages:
-
-| Term | Hebrew | Strong's ID | Minimum Required Count |
-|------|--------|-------------|------------------------|
-| Elohim | אלהים | H430 | 2,600 |
-| YHWH | יהוה | H3068 | 6,000 |
-| Adon | אדון | H113 | 335 |
-| Chesed | חסד | H2617 | 248 |
-| Aman | אמן | H539 | 100 |
-
-See [Theological Terms](rules/theological_terms.md) for more details.
-
-## Database Access
-
-All database access should follow the patterns in the [Database Access](rules/database_access.md) guidelines:
-
-```python
-from src.database.connection import get_connection
-
-def example_query():
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM bible.verses LIMIT 10")
-        return cursor.fetchall()
-```
-
-## Contributing
-
-When contributing to this project, please follow the guidelines in the [Rules Overview](rules/README.md) document. 
+For more details, see the [Documentation Maintenance Guide](guides/documentation_maintenance.md).

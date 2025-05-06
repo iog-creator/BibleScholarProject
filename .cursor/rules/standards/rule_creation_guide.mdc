@@ -1,0 +1,71 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# When to Create New Cursor Rules
+
+For more detailed guidance, see [Rule Creation Guide](../docs/rules/rule_creation_guide.md).
+
+## Key Indicators for New Rules
+
+Create a new rule when you need to:
+
+1. **Standardize repetitive patterns** - If you find yourself repeatedly giving the same guidance
+2. **Enforce project conventions** - Coding standards, naming conventions, or architectural patterns
+3. **Document complex domain knowledge** - Theological term handling, linguistic processing rules
+4. **Provide context for specific file types** - Specialized handling for particular file formats
+5. **Share institutional knowledge** - Help others understand project-specific concepts
+
+## Rule Candidates by Category
+
+### Code Standards
+
+* ETL processing patterns
+* Database access patterns
+* Error handling conventions
+* Logging standards
+* API endpoint design
+* Test skip conditions
+
+### Domain Knowledge
+
+* Theological term handling
+* Biblical reference formats
+* Linguistic processing rules
+* Versification mapping
+
+### Tool/Library Usage
+
+* Pandas DataFrame guidelines
+* DSPy training generation
+* Database connection patterns
+* ML model validation
+
+## When NOT to Create Rules
+
+Avoid creating rules when:
+
+1. The guidance applies to only a single file
+2. The pattern is standard across the industry (use existing documentation)
+3. The rule would be too general to be helpful
+4. The guidance changes frequently
+
+## Rule Creation Decision Tree
+
+```
+Is this guidance repeated often? → YES → Consider a rule
+             ↓ NO
+Is this domain-specific knowledge? → YES → Consider a rule
+             ↓ NO
+Will multiple developers need this? → YES → Consider a rule
+             ↓ NO
+           Probably don't need a rule
+```
+
+## Rule Maintenance
+
+* Review rules quarterly to ensure they remain relevant
+* Update rules when project patterns evolve
+* Delete outdated rules that no longer apply
+* Consolidate related rules if they become fragmented

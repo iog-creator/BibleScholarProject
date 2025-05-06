@@ -1,0 +1,13 @@
+type: agent requested
+title: DB Test Skip
+description: Guidelines for skipping database tests
+globs:
+  - "tests/**/*.py"
+alwaysApply: false
+---
+
+# DB Test Skip Guidelines
+
+## Overview
+
+For comprehensive documentation, see [Testing Framework](docs/guides/testing_framework.md).

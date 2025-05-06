@@ -2,6 +2,8 @@
 
 This document provides comprehensive guidance on generating, using, and extending DSPy training data for the BibleScholarProject's AI assistance capabilities.
 
+*This document is complemented by the [dspy_generation](.cursor/rules/standards/dspy_generation.mdc) cursor rule.*
+
 ## Overview
 
 The BibleScholarProject uses DSPy to train AI models that can assist with biblical research, theological queries, and autonomous web interface interactions. Training data is stored in JSONL format in the `data/processed/dspy_training_data` directory.
@@ -198,44 +200,31 @@ To improve an existing category:
 ## Best Practices
 
 1. **Theological Verification**: Always verify that theological terms are correctly represented and that answers align with scholarly biblical interpretation.
+2. **Consistent Formatting**: Maintain consistent JSON formatting across all dataset files.
+3. **Metadata Inclusion**: Always include metadata fields for traceability and filtering.
+4. **Cross-Language Support**: Include examples across different translations when possible.
 
-2. **Diverse Examples**: Include a wide range of example types - factual questions, theological inquiries, complex queries, and edge cases.
+## Integration with Semantic Search
 
-3. **Balance**: Ensure balanced representation of different biblical books, theological concepts, and query types.
+The DSPy training system integrates closely with the semantic search capabilities:
 
-4. **Multi-Source Data**: Combine data from different sources (verses, lexicons, morphology) for richer training examples.
+1. **Vector-Enhanced Examples**: Use embedding vectors to find semantically similar verses for training examples.
+2. **Theological Term Boosting**: Prioritize examples containing critical theological terms.
+3. **Multilingual Support**: Generate examples across different language translations.
 
-5. **Regular Updates**: Update training data regularly as the database is expanded or corrected.
+See [Semantic Search](../features/semantic_search.md) for more details on how the vector search capabilities enhance DSPy training data generation.
 
-## Troubleshooting
+## Related Documentation
 
-### Common Issues
+- [Theological Terms](../features/theological_terms.md) - Theological term definitions and processing
+- [Database Schema](../reference/DATABASE_SCHEMA.md) - Database structure information
+- [API Reference](../reference/API_REFERENCE.md) - API endpoints for data access
 
-1. **Missing Database Connection**: Ensure your .env file has correct database credentials.
+## Modification History
 
-2. **Insufficient Term Coverage**: If theological term counts are below minimum:
-   - Check database integrity
-   - Run `fix_hebrew_strongs_ids.py` to extract missing IDs
-   - Verify Hebrew word tables have correct Strong's IDs
-
-3. **JSON Parsing Errors**: Ensure all generated data is valid JSON with proper escaping.
-
-### Validation
-
-Validate generated data using:
-
-```bash
-python scripts/validate_dspy_data.py
-```
-
-This checks for:
-- Proper JSON formatting
-- Schema adherence
-- Theological term coverage 
-- Statistical metrics for dataset quality
-
-## References
-
-- [DSPy Documentation](https://dspy.ai/)
-- [BibleScholarProject Guidelines](docs/theological_terms.md)
-- [STEPBible Explorer System Build Guide](docs/STEPBible_Explorer_System_Build_Guide.md) 
+| Date | Change | Author |
+|------|--------|--------|
+| 2025-05-06 | Moved to guides directory and updated cross-references | BibleScholar Team |
+| 2025-04-20 | Added integration with semantic search section | BibleScholar Team |
+| 2025-03-15 | Added best practices section | BibleScholar Team |
+| 2025-02-01 | Initial DSPy training guide | BibleScholar Team | 

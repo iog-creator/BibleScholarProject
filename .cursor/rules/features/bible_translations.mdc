@@ -1,0 +1,75 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+type: always
+title: Bible Translations
+description: Guidelines for processing and working with Bible translations in the BibleScholarProject
+globs:
+  - "src/etl/*bible*.py"
+  - "src/api/verses_api.py"
+  - "load_*bible*.py"
+alwaysApply: false
+---
+
+# Bible Translations Guidelines
+
+## Overview
+
+This rule defines standards for handling Bible translations in the BibleScholarProject. For comprehensive documentation, see [Bible Translations](mdc:docs/features/bible_translations.md).
+
+## Key Requirements
+
+1. **Translation Identification**
+   - Each translation must have a unique identifier in the `translation_source` field
+   - Standard identifiers: "KJV", "ASV", "ESV", "TAGNT", "TAHOT"
+   - Use consistent casing (uppercase) for all translation identifiers
+
+2. **Database Storage**
+   - All translations stored in the `bible.verses` table
+   - Ensure proper versification alignment between translations
+   - Use the composite unique constraint on `(book_name, chapter_num, verse_num, translation_source)`
+
+3. **Public Domain Translations**
+   - KJV and ASV should be loaded from verified public domain sources
+   - Use provided ETL scripts: `load_public_domain_bibles.py`
+   - Validate verse counts after loading
+
+4. **Licensed Content**
+   - ESV text requires proper licensing from Crossway
+   - Include required attribution in API responses
+   - Limit sample verses according to licensing restrictions
+
+5. **Original Language Texts**
+   - TAGNT and TAHOT require specialized parsing logic
+   - Preserve Strong's number tagging during ETL
+   - Follow theological term verification guidelines
+
+## Example Usage
+
+```python
+# Loading a verse from a specific translation
+def get_verse(book, chapter, verse, translation="KJV"):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = """
+        SELECT verse_text 
+        FROM bible.verses 
+        WHERE book_name = %s 
+        AND chapter_num = %s 
+        AND verse_num = %s 
+        AND translation_source = %s
+    """
+    
+    cursor.execute(query, (book, chapter, verse, translation))
+    result = cursor.fetchone()
+    
+    conn.close()
+    return result[0] if result else None
+```
+
+
+
+

@@ -1,0 +1,14 @@
+type: agent requested
+title: Parser Strictness Levels
+description: Standards for configuring parser strictness levels in ETL processes
+globs:
+  - "src/etl/**/*.py"
+  - "src/utils/parsers/*.py"
+alwaysApply: false
+---
+
+# Parser Strictness Levels
+
+## Overview
+
+For comprehensive documentation, see [ETL Pipeline](docs/features/etl_pipeline.md).

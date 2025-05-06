@@ -1,0 +1,10 @@
+---
+description: TVTMS file format handling guidelines
+globs: 
+  - "**/tvtms/**/*.py"
+  - "**/scripts/*tvtms*.py"
+# TVTMS Text File Format Guidelines
+
+This rule provides standards for working with TVTMS text files.
+
+This rule provides standards for working with TVTMS text files.

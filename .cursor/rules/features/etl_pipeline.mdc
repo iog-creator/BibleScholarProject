@@ -1,0 +1,15 @@
+type: always
+title: ETL Pipeline
+description: Guidelines for ETL processes and data pipeline processing in the BibleScholarProject
+globs:
+  - "src/etl/**/*.py"
+  - "scripts/**/etl_*.py"
+  - "scripts/**/fix_*.py"
+alwaysApply: false
+---
+
+# ETL Pipeline Guidelines
+
+## Overview
+
+For comprehensive documentation, see [ETL Pipeline](docs/features/etl_pipeline.md).
