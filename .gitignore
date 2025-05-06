@@ -83,6 +83,10 @@ celerybeat-schedule
 
 # Environments
 .env
+.env.dspy
+.env.*
+!.env.example
+!.env.example.dspy
 .venv
 env/
 venv/
