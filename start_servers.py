@@ -38,7 +38,7 @@ def start_api_server(port):
     print_info(f"Starting API server on port {port}...")
     try:
         env = os.environ.copy()
-        env["FLASK_APP"] = "src.api.lexicon_api"
+        env["FLASK_APP"] = "src.api.lexicon_api:app"
         api_process = subprocess.Popen(
             ["python", "-m", "flask", "run", "--port", str(port)],
             env=env
