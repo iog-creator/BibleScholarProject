@@ -16,7 +16,7 @@ Instructions for Training Models with DSPy using HuggingFace Teacher Models
 
 # Required Environment Variables
 # Add to your .env file:
-# HUGGINGFACE_API_KEY=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  # Your HuggingFace API key for teacher models
+# HUGGINGFACE_API_KEY=your_huggingface_api_key_here  # Your HuggingFace API key for teacher models
 # STUDENT_MODEL=google/flan-t5-small  # Local model to be trained/optimized
 
 # 2. Install Required Packages
