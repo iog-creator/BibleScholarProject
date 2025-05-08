@@ -85,6 +85,8 @@ celerybeat-schedule
 .env
 .env.dspy
 .env.*
+.env.original
+.env.secure
 !.env.example
 !.env.example.dspy
 .venv
@@ -143,4 +145,11 @@ cross_language_api.log
 lexicon_api.log
 fix_hebrew_strongs_ids.log
 large_files/
-data/processed/dspy_training_data/*.jsonl 
+data/processed/dspy_training_data/*.jsonl
+
+# Sensitive information
+**/credentials.json
+**/secrets.json
+**/*_key.json
+**/*_token.txt
+**/api_keys.txt 
