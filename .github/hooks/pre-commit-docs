@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Pre-commit hook to validate documentation
+# To install:
+# cp .github/hooks/pre-commit-docs .git/hooks/pre-commit
+# chmod +x .git/hooks/pre-commit
+
+# Get a list of staged markdown files in docs/ directory
+STAGED_MD_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^docs/.*\.md$' || true)
+STAGED_MDC_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^\.cursor/rules/.*\.mdc$' || true)
+
+# If there are staged markdown files, run the validation script
+if [ -n "$STAGED_MD_FILES" ] || [ -n "$STAGED_MDC_FILES" ]; then
+    echo "Validating documentation..."
+    python scripts/validate_documentation.py
+    
+    # If validation fails, abort the commit
+    if [ $? -ne 0 ]; then
+        echo "❌ Documentation validation failed. Please fix the issues before committing."
+        echo "Run 'python scripts/validate_documentation.py' for details."
+        exit 1
+    fi
+fi
+
+# Continue with commit if validation passes
+exit 0 

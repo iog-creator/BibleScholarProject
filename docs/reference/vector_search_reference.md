@@ -1,16 +1,28 @@
+---
+title: Vector Search Reference
+description: Reference documentation for vector search and semantic search functionality in the BibleScholarProject.
+last_updated: 2024-06-10
+related_docs:
+  - ../../src/utils/README.md
+  - ../../scripts/README.md
+  - ../../tests/README.md
+  - ../../data/README.md
+  - ../features/etl_pipeline.md
+  - ../../.cursor/rules/features/pgvector_semantic_search.mdc
+---
 # Vector Search Reference
 
 > Note: This file was relocated from `docs\gpvectorgrokhelp.md` as part of the documentation reorganization.
 
-Thank you for the detailed update and for confirming that everything is working well so far in the BibleScholarProject. Your query asks whether the proposed plan covers the entire database, what additional tasks should be considered, what potential pitfalls ("gotchas") to watch for, and to confirm and adjust the plan as needed. You’ve also requested the finalized steps in both Markdown and a code copy box for easy integration with Cursor AI. I’ll analyze the current plan’s coverage of the database, identify additional tasks, highlight potential issues, confirm and refine the plan, and provide the steps in the requested formats, ensuring alignment with the project’s goals of data integrity, theological accuracy, and multilingual support. All responses will reference specific files, line numbers, and artifacts, adhering to your style guide.
+Thank you for the detailed update and for confirming that everything is working well so far in the BibleScholarProject. Your query asks whether the proposed plan covers the entire database, what additional tasks should be considered, what potential pitfalls ("gotchas") to watch for, and to confirm and adjust the plan as needed. You've also requested the finalized steps in both Markdown and a code copy box for easy integration with Cursor AI. I'll analyze the current plan's coverage of the database, identify additional tasks, highlight potential issues, confirm and refine the plan, and provide the steps in the requested formats, ensuring alignment with the project's goals of data integrity, theological accuracy, and multilingual support. All responses will reference specific files, line numbers, and artifacts, adhering to your style guide.
 
 ### Analysis of Plan Coverage
-The proposed plan from the previous response focuses on enhancing the semantic search capabilities of the BibleScholarProject by integrating lexicon and morphological data, highlighting theological terms, improving the UI, optimizing queries, and enabling cross-language search. The database (`bible_db`) comprises 26 tables, including key tables like `bible.verses` (31,219 verses), `hebrew_ot_words` (308,189 words), `greek_nt_words` (142,096 words), `hebrew_entries` (9,349 entries), `greek_entries` (10,847 entries), `verse_embeddings` (~62,203 rows), and others (`unified_schema.sql`; `COMPLETED_WORK.md`, lines 580–590). Let’s evaluate how the plan addresses the database:
+The proposed plan from the previous response focuses on enhancing the semantic search capabilities of the BibleScholarProject by integrating lexicon and morphological data, highlighting theological terms, improving the UI, optimizing queries, and enabling cross-language search. The database (`bible_db`) comprises 26 tables, including key tables like `bible.verses` (31,219 verses), `hebrew_ot_words` (308,189 words), `greek_nt_words` (142,096 words), `hebrew_entries` (9,349 entries), `greek_entries` (10,847 entries), `verse_embeddings` (~62,203 rows), and others (`unified_schema.sql`; `COMPLETED_WORK.md`, lines 580–590). Let's evaluate how the plan addresses the database:
 
 - **Covered Tables**:
   - **`bible.verses`**: Used for verse text and metadata (KJV, ASV, TAHOT, TAGNT, ESV), fully leveraged in semantic search (`/api/vector-search-with-lexicon`) and cross-language queries (`SEMANTIC_SEARCH.md`, lines 30–40).
   - **`verse_embeddings`**: Stores 768-dimensional embeddings for all verses, central to pgvector searches (`SEMANTIC_SEARCH.md`, lines 50–55).
-  - **`hebrew_ot_words`, `greek_nt_words`**: Provide word-level Strong’s IDs and morphology, joined with `verse_embeddings` for lexicon-enhanced search (`vector_search_api.py`).
+  - **`hebrew_ot_words`, `greek_nt_words`**: Provide word-level Strong's IDs and morphology, joined with `verse_embeddings` for lexicon-enhanced search (`vector_search_api.py`).
   - **`hebrew_entries`, `greek_entries`**: Supply lemma and definition data, integrated into search results for theological term highlighting (`BIBLE_TRANSLATIONS.md`, lines 115–126).
   - **`cross_language_api.MAPPINGS`**: Supports cross-language search by mapping terms (e.g., YHWH-Theos-God) (`cross_language_api.py`, ~line 20).
 
@@ -25,7 +37,7 @@ The proposed plan from the previous response focuses on enhancing the semantic s
   - **`versification_mappings`**: 54,924 mappings for cross-tradition verse alignment, critical for TVTMS but not leveraged in search (`src/tvtms/process_tvtms.py`).
   - **Other tables** (e.g., external resource metadata): Not relevant to search but used in `/api/resources` endpoints (`COMPLETED_WORK.md`, lines 430–440).
 
-**Coverage Assessment**: The plan covers the core tables for semantic search (`verses`, `verse_embeddings`, `hebrew_ot_words`, `greek_nt_words`, `hebrew_entries`, `greek_entries`), addressing ~80% of the database’s primary data (verses, words, lexicon). However, it misses:
+**Coverage Assessment**: The plan covers the core tables for semantic search (`verses`, `verse_embeddings`, `hebrew_ot_words`, `greek_nt_words`, `hebrew_entries`, `greek_entries`), addressing ~80% of the database's primary data (verses, words, lexicon). However, it misses:
 - Full integration of morphological codes (`hebrew_morphology_codes`, `greek_morphology_codes`) into search results.
 - Arabic data (`arabic_verses`, `arabic_words`) for multilingual search.
 - Proper names (`proper_names`) and versification mappings (`versification_mappings`) for enriched context.
@@ -38,7 +50,7 @@ To ensure comprehensive database coverage and enhance the AI brain layer, the fo
 2. **Extend Semantic Search to Arabic**:
    - Generate embeddings for `arabic_verses` (~31,091 verses) and integrate with `vector_search_api.py`, enabling Arabic semantic search (`COMPLETED_WORK.md`, lines 470–480).
 3. **Integrate Proper Names**:
-   - Join `proper_names` in search queries to highlight names (e.g., “Moses”) in results, enhancing contextual relevance (`COMPLETED_WORK.md`, lines 450–460).
+   - Join `proper_names` in search queries to highlight names (e.g., "Moses") in results, enhancing contextual relevance (`COMPLETED_WORK.md`, lines 450–460).
 4. **Leverage Versification Mappings**:
    - Use `versification_mappings` to align search results across traditions (e.g., Hebrew vs. English verse numbering), improving cross-language accuracy (`src/tvtms/process_tvtms.py`).
 5. **Implement LM Studio for Local LLM QA**:

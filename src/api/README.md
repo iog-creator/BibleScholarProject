@@ -1,203 +1,57 @@
-# API Documentation for BibleScholarProject
+---
+title: API Modules
+description: API endpoints and services for the BibleScholarProject
+last_updated: 2025-05-08
+related_docs:
+  - ../../README.md
+  - ../../docs/reference/API_REFERENCE.md
+  - ../database/README.md
+  - ../utils/README.md
+---
+# API Modules
 
-This directory contains the REST API endpoints for the BibleScholarProject. The API provides programmatic access to Bible data, lexicons, morphology information, and more.
+This directory contains API endpoints and services for the BibleScholarProject.
 
 ## API Structure
 
-- `lexicon_api.py`: Main API module for lexicon access and search
-- `cross_language_api.py`: API for cross-language term relationships
-- `external_resources_api.py`: API for external biblical resources
+- `bible_qa_api.py` - Bible question-answering API endpoints
+- `search_api.py` - Search API endpoints for text and semantic search
+- `vector_search_api.py` - Vector search API endpoints for semantic search
+- `data_api.py` - Data retrieval API endpoints
+- `authentication.py` - Authentication and authorization utilities
 
-## Endpoints
+## Endpoint Documentation
 
-### Lexicon API
+Detailed API documentation is available in [API Reference](../../docs/reference/API_REFERENCE.md).
 
-- `/api/lexicon/hebrew/{strongs_id}`: Get Hebrew lexicon entry
-- `/api/lexicon/search`: Search lexicon entries
-- `/api/lexicon/stats`: Get lexicon statistics
-- `/api/theological_terms_report`: Get theological term statistics
-- `/api/lexicon/hebrew/validate_critical_terms`: Validate critical Hebrew terms
+Key endpoints include:
 
-### Morphology API
+- `/api/bible/qa` - Bible question-answering endpoint
+- `/api/search/text` - Text search endpoint
+- `/api/search/vector` - Vector search endpoint
+- `/api/verses` - Verse retrieval endpoint
+- `/api/strongs` - Strong's concordance endpoint
 
-- `/api/morphology/hebrew`: Get Hebrew morphology codes
-- `/api/morphology/greek`: Get Greek morphology codes
-- `/api/morphology/hebrew/{code}`: Get Hebrew morphology code details
-- `/api/morphology/greek/{code}`: Get Greek morphology code details
+## Usage
 
-### Names API
+API endpoints are used by:
 
-- `/api/names`: Get biblical names
-- `/api/names/search`: Search biblical names
+1. Web application for user interface
+2. Command-line tools for testing and debugging
+3. Integration with external services
+4. Client applications
 
-### Cross-Language API
+## Adding New Endpoints
 
-- `/api/cross_language/terms`: Get cross-language term relationships
+When adding new endpoints:
 
-## DSPy Training Data Integration
+1. Follow the existing patterns and conventions
+2. Document the endpoint in the API reference
+3. Add appropriate tests in `tests/integration/test_api/`
+4. Ensure proper error handling and validation
 
-The API endpoints are integrated with the DSPy training data collection system to capture real user interactions as training data.
-
-### How It Works
-
-1. **Automatic Logging**: API endpoint calls are automatically logged using decorators
-2. **Request Capture**: API request parameters are captured
-3. **Response Capture**: API responses are captured
-4. **Training Data Generation**: The data is formatted and added to DSPy training datasets
-
-### Decorator Usage
-
-```python
-from scripts.log_user_interactions import log_api_endpoint
-
-@app.route('/api/lexicon/hebrew/<strongs_id>', methods=['GET'])
-@log_api_endpoint
-def get_hebrew_entry(strongs_id):
-    # API implementation
-    # ...
-    return jsonify(entry)
-```
-
-The `@log_api_endpoint` decorator automatically:
-- Logs the endpoint path
-- Captures request method and parameters
-- Captures the response data
-- Formats the interaction as a training example
-- Adds it to the appropriate DSPy training dataset
-
-### Manual Logging
-
-You can also manually log API interactions:
-
-```python
-from scripts.log_user_interactions import log_api_interaction
-
-# Log an API interaction
-log_api_interaction(
-    endpoint="/api/lexicon/hebrew/H7225",
-    method="GET",
-    params={},
-    response={"strongs_id": "H7225", "lemma": "רֵאשִׁית"},
-    success=True
-)
-```
-
-### Generated Training Data
-
-The logged API interactions are used to create various training examples:
-
-1. **API Usage Examples**: How to use specific API endpoints
-2. **Problem-Solution Pairs**: Common issues and their solutions
-3. **Question-Answer Pairs**: Questions about the API and their answers
-
-## Adding New API Endpoints
-
-When adding new API endpoints, follow these guidelines:
-
-1. **Apply the Decorator**: Add the `@log_api_endpoint` decorator to each endpoint
-2. **Include Documentation**: Add clear docstrings explaining the endpoint
-3. **Return Meaningful Errors**: Use standardized error responses
-4. **Handle Edge Cases**: Consider and handle edge cases gracefully
-5. **Test the Endpoint**: Include tests in the integration test suite
-
-## Example Usage
-
-### Python
-
-```python
-import requests
-
-# Get a Hebrew lexicon entry
-response = requests.get("http://localhost:5000/api/lexicon/hebrew/H7225")
-data = response.json()
-print(data)
-
-# Search the lexicon
-response = requests.get("http://localhost:5000/api/lexicon/search", 
-                       params={"q": "beginning", "lang": "hebrew"})
-results = response.json()
-for entry in results:
-    print(f"{entry['strongs_id']}: {entry['lemma']} - {entry['gloss']}")
-```
-
-### JavaScript
-
-```javascript
-// Get a Hebrew lexicon entry
-fetch('http://localhost:5000/api/lexicon/hebrew/H7225')
-  .then(response => response.json())
-  .then(data => console.log(data));
-
-// Search the lexicon
-fetch('http://localhost:5000/api/lexicon/search?q=beginning&lang=hebrew')
-  .then(response => response.json())
-  .then(results => {
-    results.forEach(entry => {
-      console.log(`${entry.strongs_id}: ${entry.lemma} - ${entry.gloss}`);
-    });
-  });
-```
-
-## API Response Format
-
-All API responses are in JSON format. Successful responses have the following structure:
-
-```json
-{
-  "data": {
-    // Response data specific to the endpoint
-  }
-}
-```
-
-Error responses have the following structure:
-
-```json
-{
-  "error": "Error message",
-  "status_code": 404
-}
-```
-
-## Running the API Server
-
-```bash
-# Start only the API server
-python start_servers.py --api-only
-
-# Start both API and web servers
-python start_servers.py
-
-# Using Make
-make run-api
-```
-
-The API server runs on http://localhost:5000 by default.
-
-### Flask App Configuration
-
-The API server is configured using the Flask application specified as:
-
-```
-src.api.lexicon_api:app
-```
-
-This notation tells Flask to:
-1. Import the module `src.api.lexicon_api`
-2. Look for the Flask application instance named `app` in that module
-
-If you're manually running the Flask application:
-
-```bash
-# Proper way to run the API server
-export FLASK_APP=src.api.lexicon_api:app
-flask run
-```
-
-For Windows PowerShell:
-```powershell
-$env:FLASK_APP="src.api.lexicon_api:app"
-flask run
-```
-
-This configuration ensures that the correct Flask application instance is found and used. 
+## Cross-References
+- [Main Project Documentation](../../README.md)
+- [API Reference](../../docs/reference/API_REFERENCE.md)
+- [Database Documentation](../database/README.md)
+- [Utility Modules](../utils/README.md) 

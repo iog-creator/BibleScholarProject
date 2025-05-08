@@ -1,3 +1,13 @@
+---
+title: Organization Reference
+description: Reference documentation for the organizational structure, documentation layout, and project conventions in the BibleScholarProject.
+last_updated: 2024-06-10
+related_docs:
+  - ../README.md
+  - ../guides/system_build_guide.md
+  - ../features/etl_pipeline.md
+  - ./DATABASE_SCHEMA.md
+---
 # Organization Reference
 
 > Note: This file was relocated from `docs\ORGANIZATION.md` as part of the documentation reorganization.
@@ -324,3 +334,9 @@ The system includes integration with external biblical resources:
 - Enhanced Arabic Bible processing with improved parsing
 - Verified full coverage of all 66 books with 31,091 verses
 - Confirmed 100% Strong's number mapping for loaded words 
+
+## Cross-References
+- [Main Documentation Index](../README.md)
+- [System Build Guide](../guides/system_build_guide.md)
+- [ETL Pipeline](../features/etl_pipeline.md)
+- [Database Schema](./DATABASE_SCHEMA.md) 

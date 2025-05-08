@@ -1,27 +1,49 @@
-# ETL (Extract, Transform, Load) Components
+---
+title: ETL Modules
+description: Extraction, transformation, and loading modules for Bible data
+last_updated: 2025-05-08
+related_docs:
+  - ../../README.md
+  - ../../docs/features/etl_pipeline.md
+  - ../database/README.md
+  - ../utils/README.md
+---
+# ETL Modules
 
-This directory contains all the ETL scripts for processing STEPBible data.
+This directory contains extraction, transformation, and loading modules for Bible data in the BibleScholarProject.
 
-## Contents
+## Module Structure
 
-- `etl_lexicons.py`: Process Hebrew and Greek lexicon data
-- `etl_greek_nt.py`: Process Greek New Testament tagged text
-- `etl_hebrew_ot.py`: Process Hebrew Old Testament tagged text
-- `etl_arabic_bible.py`: Process Arabic Bible (SVD) tagged text
-- `extract_relationships.py`: Extract relationships between words
+- `extraction/` - Modules for extracting data from various sources
+- `transformation/` - Modules for transforming data into structured formats
+- `loading/` - Modules for loading data into the database
+- `validation/` - Modules for validating data integrity
 
-### Subdirectories
+## Subdirectories
 
-- `morphology/`: Scripts for processing Hebrew and Greek morphology codes
-- `names/`: Scripts for processing proper names data
+- [`morphology/`](morphology/) - Modules for processing morphological data
+- [`names/`](names/) - Modules for processing biblical names
 
-## Usage
+## ETL Process
 
-The ETL scripts are typically run in the following order:
+The ETL process follows these steps:
 
-1. Load reference data (books, abbreviations)
-2. Process lexicons (Hebrew and Greek)
-3. Process morphology codes
-4. Process tagged texts (Hebrew, Greek, Arabic)
-5. Extract word relationships
-6. Process proper names 
+1. **Extraction**: Raw data is extracted from various sources
+2. **Transformation**: Data is cleaned, structured, and normalized
+3. **Validation**: Data is validated for integrity and completeness
+4. **Loading**: Processed data is loaded into the database
+
+## Adding New ETL Modules
+
+When adding new ETL modules:
+
+1. Follow the existing patterns and conventions
+2. Document the module with clear docstrings
+3. Add appropriate tests in `tests/unit/test_etl/`
+4. Ensure proper error handling and validation
+
+## Cross-References
+- [Main Project Documentation](../../README.md)
+- [ETL Pipeline](../../docs/features/etl_pipeline.md)
+- [Database Documentation](../database/README.md)
+- [Utility Modules](../utils/README.md) 

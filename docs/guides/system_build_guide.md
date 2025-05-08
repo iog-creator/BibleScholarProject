@@ -1,3 +1,14 @@
+---
+title: System Build Guide
+description: Step-by-step guide for building and setting up the BibleScholarProject system, including environment, dependencies, and data setup.
+last_updated: 2024-06-10
+related_docs:
+  - ../../scripts/README.md
+  - ../../src/utils/README.md
+  - ../features/etl_pipeline.md
+  - ../reference/DATABASE_SCHEMA.md
+  - ./testing_framework.md
+---
 # System Build Guide
 
 > Note: This file was relocated from `docs\STEPBible_Explorer_System_Build_Guide.md` as part of the documentation reorganization.
@@ -77,6 +88,13 @@
     - [DSPy Data Generation](#dspy-data-generation)
     - [Autonomous Web Interface Interaction](#autonomous-web-interface-interaction)
   - [License](#license)
+
+## Cross-References
+- [Scripts Directory](../../scripts/README.md)
+- [Utilities](../../src/utils/README.md)
+- [ETL Pipeline](../features/etl_pipeline.md)
+- [Database Schema](../reference/DATABASE_SCHEMA.md)
+- [Testing Framework Guide](./testing_framework.md)
 
 ## ⚠️ Important: TVTMS Data Source Authority
 

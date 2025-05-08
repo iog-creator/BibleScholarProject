@@ -1,30 +1,37 @@
 #!/usr/bin/env python3
 """
-Simple demo Flask app for pgvector search.
+Vector Search Demo Application
 
-This minimal app:
-1. Provides a web interface for searching Bible verses with pgvector
-2. Shows the power of semantic search over traditional keyword search
-3. Demonstrates the integration of LM Studio embeddings with PostgreSQL
+This is a simple web application that demonstrates the vector search capabilities
+of the BibleScholarProject. It allows users to search for Bible verses semantically
+using pgvector in PostgreSQL.
 
-Usage:
-    python -m src.utils.vector_search_demo
-
-Then open http://127.0.0.1:5050 in your browser.
+The demo includes:
+- Basic vector search with relevance scoring
+- Cross-translation comparison
+- Search for verses similar to a reference verse
 """
 
 import os
+import sys
 import logging
-import requests
-from flask import Flask, render_template, request, jsonify
+import json
+from typing import List, Dict, Any, Optional
 import psycopg
 from psycopg.rows import dict_row
+import numpy as np
+import requests
+from flask import Flask, request, render_template, jsonify
 from dotenv import load_dotenv
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("logs/vector_search_demo.log", mode="a"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -32,23 +39,37 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # LM Studio API settings
-LM_STUDIO_API_URL = os.getenv("LM_STUDIO_API_URL", "http://127.0.0.1:1234")
-EMBEDDING_MODEL = "text-embedding-nomic-embed-text-v1.5@q8_0:2"
+LM_STUDIO_API_URL = os.getenv("LM_STUDIO_API_URL", "http://127.0.0.1:1234/v1")
+EMBEDDING_MODEL = os.getenv("LM_STUDIO_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5@q8_0")
 
-# Initialize Flask app
-app = Flask(__name__, template_folder="../../templates")
+# Database connection settings
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+DB_NAME = os.getenv("POSTGRES_DB", "bible_db")
+DB_USER = os.getenv("POSTGRES_USER", "postgres")
+DB_PASS = os.getenv("POSTGRES_PASSWORD", "postgres")
+
+# Create Flask app
+app = Flask(__name__)
+
+# Add templates directory
+app.template_folder = "templates"
 
 def get_db_connection():
-    """Get a database connection with the appropriate configuration."""
-    conn = psycopg.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=os.getenv("POSTGRES_PORT", "5432"),
-        dbname=os.getenv("POSTGRES_DB", "bible_db"),
-        user=os.getenv("POSTGRES_USER", "postgres"),
-        password=os.getenv("POSTGRES_PASSWORD", "postgres"),
-        row_factory=dict_row
-    )
-    return conn
+    """Get a connection to the database."""
+    try:
+        conn = psycopg.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASS,
+            row_factory=dict_row
+        )
+        return conn
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        raise
 
 def get_embedding(text):
     """
@@ -62,7 +83,7 @@ def get_embedding(text):
     """
     try:
         response = requests.post(
-            f"{LM_STUDIO_API_URL}/v1/embeddings",
+            f"{LM_STUDIO_API_URL}/embeddings",
             headers={"Content-Type": "application/json"},
             json={
                 "model": EMBEDDING_MODEL,
@@ -87,339 +108,738 @@ def get_embedding(text):
         logger.error(f"Error getting embedding from LM Studio: {e}")
         return None
 
-def search_verses(query, translation="KJV", limit=10):
+def validate_translation(translation):
+    """Validate and normalize translation code."""
+    # Get list of valid translations
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT translation_source FROM bible.verse_embeddings")
+        valid_translations = [row['translation_source'] for row in cursor.fetchall()]
+        conn.close()
+        
+        # Check if the provided translation is valid
+        if translation in valid_translations:
+            return translation
+        
+        # If not valid, normalize and check again
+        normalized = translation.upper()
+        if normalized in valid_translations:
+            return normalized
+        
+        # Return default translation if not found
+        logger.warning(f"Invalid translation: {translation}, using KJV")
+        return "KJV"
+    except Exception as e:
+        logger.error(f"Error validating translation: {e}")
+        return "KJV"
+
+def search_similar_verses(verse_reference, translation="KJV", limit=10):
     """
-    Search for verses similar to the query using vector similarity.
+    Search for verses similar to the specified verse reference.
     
     Args:
-        query: Text query
-        translation: Bible translation to search
-        limit: Number of results to return
+        verse_reference: Reference in format "Book Chapter:Verse" (e.g., "John 3:16")
+        translation: Bible translation
+        limit: Maximum number of results
         
     Returns:
         List of similar verses
     """
-    # Get query embedding
-    logger.info(f"Getting embedding for query: '{query}' for translation: '{translation}'")
-    query_embedding = get_embedding(query)
-    if not query_embedding:
-        logger.error("Failed to generate embedding for query")
-        return []
-    
-    # Format the embedding array in PostgreSQL syntax
-    embedding_array = "["
-    for i, value in enumerate(query_embedding):
-        if i > 0:
-            embedding_array += ","
-        embedding_array += str(value)
-    embedding_array += "]"
-    
-    # Output statistics for debugging
-    logger.info(f"Searching for verses similar to: '{query}' in translation: '{translation}'")
-    
-    # Search for similar verses
-    conn = get_db_connection()
     try:
-        # Get count first to verify query works
-        with conn.cursor() as cur:
-            try:
-                cur.execute(
-                    """
-                    SELECT COUNT(*) 
-                    FROM bible.verse_embeddings e
-                    JOIN bible.verses v ON e.verse_id = v.id
-                    WHERE v.translation_source = %s
-                    """,
-                    (translation,)
-                )
-                count_result = cur.fetchone()
-                verse_count = count_result["count"] if count_result else 0
-                logger.info(f"Found {verse_count} verses in {translation} translation")
-                
-                if verse_count == 0:
-                    logger.warning(f"No verses found for translation: {translation}")
-                    return []
-                
-                # Use a simpler direct query structure for better compatibility
-                embedding_query = """
-                SELECT 
-                    v.book_name, 
-                    v.chapter_num, 
-                    v.verse_num, 
-                    v.verse_text,
-                    v.translation_source,
-                    1 - (e.embedding <=> %s::vector) AS similarity
-                FROM 
-                    bible.verse_embeddings e
-                    JOIN bible.verses v ON e.verse_id = v.id
-                WHERE 
-                    v.translation_source = %s
-                ORDER BY 
-                    e.embedding <=> %s::vector
-                LIMIT %s
-                """
-                
-                cur.execute(embedding_query, (embedding_array, translation, embedding_array, limit))
-                results = cur.fetchall()
-                
-                logger.info(f"Found {len(results)} similar verses in {translation}")
-                
-                # Format results for display
-                formatted_results = []
-                for r in results:
-                    formatted_results.append({
-                        'reference': f"{r['book_name']} {r['chapter_num']}:{r['verse_num']}",
-                        'text': r['verse_text'],
-                        'translation': r['translation_source'],
-                        'similarity': round(float(r['similarity']) * 100, 2)
-                    })
-                    
-                return formatted_results
-            except Exception as e:
-                logger.error(f"Error in vector search query: {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-                return []
-    except Exception as e:
-        logger.error(f"Error connecting to database: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return []
-    finally:
+        # Parse the verse reference
+        parts = verse_reference.strip().split()
+        if len(parts) < 2:
+            logger.error(f"Invalid verse reference format: {verse_reference}")
+            return []
+        
+        book_name = " ".join(parts[:-1])
+        chapter_verse = parts[-1].split(":")
+        
+        if len(chapter_verse) != 2:
+            logger.error(f"Invalid verse reference format: {verse_reference}")
+            return []
+        
+        chapter_num = int(chapter_verse[0])
+        verse_num = int(chapter_verse[1])
+        
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get the embedding for the reference verse
+        query = """
+        SELECT ve.embedding
+        FROM bible.verses v
+        JOIN bible.books b ON v.book_id = b.book_id
+        JOIN bible.verse_embeddings ve ON v.verse_id = ve.verse_id
+        WHERE b.book_name = %s
+        AND v.chapter_num = %s
+        AND v.verse_num = %s
+        AND ve.translation_source = %s
+        LIMIT 1
+        """
+        
+        cursor.execute(query, (book_name, chapter_num, verse_num, translation))
+        result = cursor.fetchone()
+        
+        if not result:
+            logger.error(f"Verse not found: {verse_reference}")
+            conn.close()
+            return []
+        
+        # Get the embedding vector
+        embedding = result['embedding']
+        
+        # Search for similar verses
+        search_query = """
+        SELECT v.verse_id, b.book_name, v.chapter_num, v.verse_num, 
+               v.verse_text, ve.translation_source,
+               1 - (ve.embedding <=> %s) as similarity
+        FROM bible.verses v
+        JOIN bible.books b ON v.book_id = b.book_id
+        JOIN bible.verse_embeddings ve ON v.verse_id = ve.verse_id
+        WHERE ve.translation_source = %s
+        AND NOT (b.book_name = %s AND v.chapter_num = %s AND v.verse_num = %s)
+        ORDER BY ve.embedding <=> %s
+        LIMIT %s
+        """
+        
+        cursor.execute(search_query, (embedding, translation, book_name, chapter_num, verse_num, embedding, limit))
+        results = cursor.fetchall()
+        
+        # Close the connection
         conn.close()
+        
+        # Convert to list of dictionaries
+        return [dict(row) for row in results]
+    except Exception as e:
+        logger.error(f"Error searching for similar verses: {e}")
+        return []
 
-def search_verses_keyword(query, translation="KJV", limit=10):
+def compare_translations(verse_reference, translations=None, limit=5):
     """
-    Search for verses using traditional keyword search.
+    Compare translations of a specific verse using vector similarity.
     
     Args:
-        query: Text query
-        translation: Bible translation to search
-        limit: Number of results to return
+        verse_reference: Reference in format "Book Chapter:Verse" (e.g., "John 3:16")
+        translations: List of translation codes (e.g., ["KJV", "ASV"])
+        limit: Maximum number of translations to compare
         
     Returns:
-        List of matching verses
+        Dictionary with verse information and comparisons
     """
-    conn = get_db_connection()
     try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT 
-                    book_name, 
-                    chapter_num, 
-                    verse_num, 
-                    verse_text,
-                    translation_source
-                FROM 
-                    bible.verses
-                WHERE 
-                    translation_source = %s
-                    AND verse_text ILIKE %s
-                LIMIT %s
-                """,
-                (translation, f'%{query}%', limit)
-            )
-            results = cur.fetchall()
-            
-            # Format results for display
-            formatted_results = []
-            for r in results:
-                formatted_results.append({
-                    'reference': f"{r['book_name']} {r['chapter_num']}:{r['verse_num']}",
-                    'text': r['verse_text'],
-                    'translation': r['translation_source']
+        # Set default translations if not provided
+        if not translations:
+            translations = ["KJV", "ASV", "WEB"]
+        
+        # Parse the verse reference
+        parts = verse_reference.strip().split()
+        if len(parts) < 2:
+            logger.error(f"Invalid verse reference format: {verse_reference}")
+            return {}
+        
+        book_name = " ".join(parts[:-1])
+        chapter_verse = parts[-1].split(":")
+        
+        if len(chapter_verse) != 2:
+            logger.error(f"Invalid verse reference format: {verse_reference}")
+            return {}
+        
+        chapter_num = int(chapter_verse[0])
+        verse_num = int(chapter_verse[1])
+        
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get all available translations for this verse
+        query = """
+        SELECT v.verse_id, b.book_name, v.chapter_num, v.verse_num, 
+               v.verse_text, ve.translation_source, ve.embedding
+        FROM bible.verses v
+        JOIN bible.books b ON v.book_id = b.book_id
+        JOIN bible.verse_embeddings ve ON v.verse_id = ve.verse_id
+        WHERE b.book_name = %s
+        AND v.chapter_num = %s
+        AND v.verse_num = %s
+        ORDER BY ve.translation_source
+        """
+        
+        cursor.execute(query, (book_name, chapter_num, verse_num))
+        results = cursor.fetchall()
+        
+        if not results:
+            logger.error(f"Verse not found: {verse_reference}")
+            conn.close()
+            return {}
+        
+        # Convert to list of dictionaries
+        verses = [dict(row) for row in results]
+        
+        # Filter to requested translations if specified
+        if translations:
+            verses = [v for v in verses if v['translation_source'] in translations]
+        
+        # Limit the number of translations
+        if len(verses) > limit:
+            verses = verses[:limit]
+        
+        # Calculate similarity between translations
+        similarities = []
+        for i, verse1 in enumerate(verses):
+            for j, verse2 in enumerate(verses):
+                if i >= j:
+                    continue
+                
+                # Calculate cosine similarity manually
+                embedding1 = verse1['embedding']
+                embedding2 = verse2['embedding']
+                
+                # Calculate similarity
+                similarity = 1 - np.arccos(
+                    np.dot(embedding1, embedding2) / 
+                    (np.linalg.norm(embedding1) * np.linalg.norm(embedding2))
+                ) / np.pi
+                
+                similarities.append({
+                    'translation1': verse1['translation_source'],
+                    'translation2': verse2['translation_source'],
+                    'similarity': float(similarity)
                 })
-                
-            return formatted_results
-    except Exception as e:
-        logger.error(f"Error searching verses by keyword: {e}")
-        return []
-    finally:
+        
+        # Close the connection
         conn.close()
+        
+        # Prepare the result
+        result = {
+            'reference': verse_reference,
+            'verses': [
+                {
+                    'translation': v['translation_source'],
+                    'text': v['verse_text']
+                }
+                for v in verses
+            ],
+            'similarities': similarities
+        }
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error comparing translations: {e}")
+        return {}
 
-@app.route('/')
+def vector_search(query, translation="KJV", limit=10):
+    """
+    Perform vector search for Bible verses.
+    
+    Args:
+        query: Search query
+        translation: Bible translation to search
+        limit: Maximum number of results
+        
+    Returns:
+        List of verse dictionaries
+    """
+    try:
+        # Get embedding for the query
+        embedding = get_embedding(query)
+        if not embedding:
+            return []
+        
+        # Convert embedding to string format for PostgreSQL
+        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+        
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Execute the search query
+        search_query = """
+        SELECT v.verse_id, b.book_name, v.chapter_num, v.verse_num, 
+               v.verse_text, ve.translation_source,
+               1 - (ve.embedding <=> %s::vector) as similarity
+        FROM bible.verses v
+        JOIN bible.books b ON v.book_id = b.book_id
+        JOIN bible.verse_embeddings ve ON v.verse_id = ve.verse_id
+        WHERE ve.translation_source = %s
+        ORDER BY ve.embedding <=> %s::vector
+        LIMIT %s
+        """
+        
+        cursor.execute(search_query, (embedding_str, translation, embedding_str, limit))
+        results = cursor.fetchall()
+        
+        # Close the connection
+        conn.close()
+        
+        # Convert to list of dictionaries
+        return [dict(row) for row in results]
+    except Exception as e:
+        logger.error(f"Error in vector search: {e}")
+        return []
+
+# Flask routes
+@app.route("/")
 def index():
-    """Home page with search form."""
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Bible Vector Search Demo</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; max-width: 1200px; margin: 0 auto; }
-            .container { display: flex; flex-direction: column; gap: 20px; }
-            .search-form { background: #f5f5f5; padding: 20px; border-radius: 5px; }
-            .results { display: flex; gap: 20px; }
-            .vector-results, .keyword-results { flex: 1; background: #f9f9f9; padding: 20px; border-radius: 5px; }
-            .verse { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-            .reference { font-weight: bold; }
-            .similarity { color: #0066cc; font-size: 0.9em; }
-            h1, h2 { color: #333; }
-            input[type="text"] { width: 60%; padding: 8px; }
-            button { padding: 8px 15px; background: #4CAF50; color: white; border: none; cursor: pointer; }
-            select { padding: 8px; }
-            .translation-note { font-size: 0.9em; color: #666; margin-top: 5px; display: none; }
-            .note-tahot, .note-tagnt { color: #d9534f; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>Bible Vector Search Demo</h1>
-            <p>Compare semantic search (using pgvector) with traditional keyword search</p>
-            
-            <div class="search-form">
-                <form id="searchForm">
-                    <input type="text" id="query" name="q" placeholder="Enter a concept, idea, or theme..." required>
-                    <select id="translation" name="translation">
-                        <option value="KJV">King James Version</option>
-                        <option value="ASV">American Standard Version</option>
-                        <option value="TAHOT">Tagged Hebrew Old Testament</option>
-                        <option value="TAGNT">Tagged Greek New Testament</option>
-                        <option value="ESV">English Standard Version</option>
-                    </select>
-                    <button type="submit">Search</button>
-                    <div id="translationNote" class="translation-note">
-                        <div class="note-general">Note: For best results, use the natural language of the translation.</div>
-                        <div class="note-tahot">TAHOT: For Hebrew text, try queries using Hebrew characters (e.g., "בְּרֵאשִׁ֖ית")</div>
-                        <div class="note-tagnt">TAGNT: For Greek text, try queries using Greek characters</div>
-                    </div>
-                </form>
-            </div>
-            
-            <div class="results">
-                <div class="vector-results">
-                    <h2>Semantic Search Results</h2>
-                    <div id="vectorResults"></div>
-                </div>
-                
-                <div class="keyword-results">
-                    <h2>Keyword Search Results</h2>
-                    <div id="keywordResults"></div>
-                </div>
-            </div>
+    """Render the main demo page."""
+    return render_template("vector_search_demo.html")
+
+@app.route("/search/vector")
+def search_api():
+    """API endpoint for vector search."""
+    try:
+        query = request.args.get("q", "")
+        translation = request.args.get("translation", "KJV")
+        limit = int(request.args.get("limit", 10))
+        
+        # Validate translation
+        translation = validate_translation(translation)
+        
+        # Perform the search
+        results = vector_search(query, translation, limit)
+        
+        # Return JSON response
+        return jsonify({
+            "query": query,
+            "translation": translation,
+            "results": results
+        })
+    except Exception as e:
+        logger.error(f"Error in search API: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/search/similar")
+def similar_verses_api():
+    """API endpoint for finding similar verses."""
+    try:
+        reference = request.args.get("reference", "")
+        translation = request.args.get("translation", "KJV")
+        limit = int(request.args.get("limit", 10))
+        
+        # Validate inputs
+        if not reference:
+            return jsonify({"error": "No verse reference provided"}), 400
+        
+        translation = validate_translation(translation)
+        
+        # Perform the search
+        results = search_similar_verses(reference, translation, limit)
+        
+        # Return JSON response
+        return jsonify({
+            "reference": reference,
+            "translation": translation,
+            "results": results
+        })
+    except Exception as e:
+        logger.error(f"Error in similar verses API: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/compare/translations")
+def compare_translations_api():
+    """API endpoint for comparing translations."""
+    try:
+        reference = request.args.get("reference", "")
+        translations_param = request.args.get("translations", "KJV,ASV,WEB")
+        
+        # Validate inputs
+        if not reference:
+            return jsonify({"error": "No verse reference provided"}), 400
+        
+        # Parse translations
+        translations = [t.strip() for t in translations_param.split(",")]
+        
+        # Perform the comparison
+        result = compare_translations(reference, translations)
+        
+        # Return JSON response
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in compare translations API: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/translations")
+def list_translations():
+    """API endpoint for listing available translations."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT translation_source FROM bible.verse_embeddings ORDER BY translation_source")
+        translations = [row['translation_source'] for row in cursor.fetchall()]
+        conn.close()
+        
+        return jsonify({
+            "translations": translations
+        })
+    except Exception as e:
+        logger.error(f"Error listing translations: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# For direct execution
+if __name__ == "__main__":
+    # Create logs directory if it doesn't exist
+    os.makedirs("logs", exist_ok=True)
+    
+    # Ensure the templates directory exists
+    os.makedirs("templates", exist_ok=True)
+    
+    # Create a simple HTML template if it doesn't exist
+    template_path = os.path.join(app.template_folder, "vector_search_demo.html")
+    if not os.path.exists(template_path):
+        with open(template_path, "w") as f:
+            f.write("""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bible Vector Search Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .search-box {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .verse {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .verse-ref {
+            font-weight: bold;
+            color: #555;
+        }
+        .verse-text {
+            margin-top: 5px;
+        }
+        .score {
+            color: #888;
+            font-size: 0.9em;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 8px;
+        }
+        select {
+            padding: 8px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            background-color: #f8f8f8;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 1px solid #fff;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            margin-top: -1px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bible Vector Search Demo</h1>
+    <p>This demo uses pgvector in PostgreSQL to perform semantic search on Bible verses.</p>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="openTab(event, 'search-tab')">Vector Search</div>
+        <div class="tab" onclick="openTab(event, 'similar-tab')">Similar Verses</div>
+        <div class="tab" onclick="openTab(event, 'compare-tab')">Compare Translations</div>
+    </div>
+    
+    <div id="search-tab" class="tab-content active">
+        <div class="search-box">
+            <h2>Search for verses semantically</h2>
+            <input type="text" id="search-query" placeholder="Enter your search query">
+            <select id="search-translation">
+                <option value="KJV">KJV</option>
+                <option value="ASV">ASV</option>
+                <option value="WEB">WEB</option>
+            </select>
+            <button onclick="performSearch()">Search</button>
         </div>
         
-        <script>
-            // Show translation note based on selection
-            document.getElementById('translation').addEventListener('change', function() {
-                const translationNote = document.getElementById('translationNote');
-                const selectedValue = this.value;
+        <div id="search-results" class="results"></div>
+    </div>
+    
+    <div id="similar-tab" class="tab-content">
+        <div class="search-box">
+            <h2>Find similar verses</h2>
+            <input type="text" id="verse-reference" placeholder="Enter verse reference (e.g., John 3:16)">
+            <select id="similar-translation">
+                <option value="KJV">KJV</option>
+                <option value="ASV">ASV</option>
+                <option value="WEB">WEB</option>
+            </select>
+            <button onclick="findSimilarVerses()">Find Similar</button>
+        </div>
+        
+        <div id="similar-results" class="results"></div>
+    </div>
+    
+    <div id="compare-tab" class="tab-content">
+        <div class="search-box">
+            <h2>Compare translations</h2>
+            <input type="text" id="compare-reference" placeholder="Enter verse reference (e.g., John 3:16)">
+            <button onclick="compareTranslations()">Compare</button>
+        </div>
+        
+        <div id="compare-results" class="results"></div>
+    </div>
+    
+    <script>
+        // Load available translations
+        fetch('/translations')
+            .then(response => response.json())
+            .then(data => {
+                const translations = data.translations;
+                const searchSelect = document.getElementById('search-translation');
+                const similarSelect = document.getElementById('similar-translation');
                 
-                // Show/hide notes
-                translationNote.style.display = 'block';
+                // Clear existing options
+                searchSelect.innerHTML = '';
+                similarSelect.innerHTML = '';
                 
-                // Hide all specific notes first
-                document.querySelector('.note-tahot').style.display = 'none';
-                document.querySelector('.note-tagnt').style.display = 'none';
-                
-                // Show specific notes based on selection
-                if (selectedValue === 'TAHOT') {
-                    document.querySelector('.note-tahot').style.display = 'block';
-                }
-                else if (selectedValue === 'TAGNT') {
-                    document.querySelector('.note-tagnt').style.display = 'block';
-                }
-                else if (selectedValue === 'KJV' || selectedValue === 'ASV' || selectedValue === 'ESV') {
-                    translationNote.style.display = 'none';
-                }
-            });
-
-            document.getElementById('searchForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const query = document.getElementById('query').value;
-                const translation = document.getElementById('translation').value;
-                
-                document.getElementById('vectorResults').innerHTML = 'Searching...';
-                document.getElementById('keywordResults').innerHTML = 'Searching...';
-                
-                // Vector search
-                fetch(`/search/vector?q=${encodeURIComponent(query)}&translation=${translation}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const resultsDiv = document.getElementById('vectorResults');
-                        if (data.results.length === 0) {
-                            resultsDiv.innerHTML = '<p>No results found</p>';
-                            if (translation === 'TAHOT') {
-                                resultsDiv.innerHTML += '<p class="note-tahot">Try searching with Hebrew text for TAHOT translation.</p>';
-                            }
-                            else if (translation === 'TAGNT') {
-                                resultsDiv.innerHTML += '<p class="note-tagnt">Try searching with Greek text for TAGNT translation.</p>';
-                            }
-                        } else {
-                            resultsDiv.innerHTML = data.results.map(verse => `
+                // Add translations to selects
+                translations.forEach(translation => {
+                    searchSelect.add(new Option(translation, translation));
+                    similarSelect.add(new Option(translation, translation));
+                });
+            })
+            .catch(error => console.error('Error loading translations:', error));
+        
+        function openTab(evt, tabName) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+            
+            // Remove active class from tabs
+            const tabs = document.getElementsByClassName('tab');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            
+            // Show the selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to the clicked tab
+            evt.currentTarget.classList.add('active');
+        }
+        
+        function performSearch() {
+            const query = document.getElementById('search-query').value;
+            const translation = document.getElementById('search-translation').value;
+            
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+            
+            // Display loading message
+            document.getElementById('search-results').innerHTML = '<p>Searching...</p>';
+            
+            // Perform the search
+            fetch(`/search/vector?q=${encodeURIComponent(query)}&translation=${translation}&limit=10`)
+                .then(response => response.json())
+                .then(data => {
+                    // Display results
+                    const resultsDiv = document.getElementById('search-results');
+                    
+                    if (data.results && data.results.length > 0) {
+                        let html = `<h3>Search results for: "${data.query}"</h3>`;
+                        
+                        data.results.forEach(verse => {
+                            const reference = `${verse.book_name} ${verse.chapter_num}:${verse.verse_num}`;
+                            const similarity = (verse.similarity * 100).toFixed(2);
+                            
+                            html += `
                                 <div class="verse">
-                                    <div class="reference">${verse.reference}</div>
-                                    <div class="text">${verse.text}</div>
-                                    <div class="similarity">Similarity: ${verse.similarity}%</div>
+                                    <div class="verse-ref">${reference}</div>
+                                    <div class="verse-text">${verse.verse_text}</div>
+                                    <div class="score">Similarity: ${similarity}%</div>
                                 </div>
-                            `).join('');
-                        }
-                    });
-                
-                // Keyword search
-                fetch(`/search/keyword?q=${encodeURIComponent(query)}&translation=${translation}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const resultsDiv = document.getElementById('keywordResults');
-                        if (data.results.length === 0) {
-                            resultsDiv.innerHTML = '<p>No results found</p>';
-                        } else {
-                            resultsDiv.innerHTML = data.results.map(verse => `
+                            `;
+                        });
+                        
+                        resultsDiv.innerHTML = html;
+                    } else {
+                        resultsDiv.innerHTML = '<p>No results found.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    document.getElementById('search-results').innerHTML = '<p>Error performing search.</p>';
+                });
+        }
+        
+        function findSimilarVerses() {
+            const reference = document.getElementById('verse-reference').value;
+            const translation = document.getElementById('similar-translation').value;
+            
+            if (!reference) {
+                alert('Please enter a verse reference');
+                return;
+            }
+            
+            // Display loading message
+            document.getElementById('similar-results').innerHTML = '<p>Searching...</p>';
+            
+            // Perform the search
+            fetch(`/search/similar?reference=${encodeURIComponent(reference)}&translation=${translation}&limit=10`)
+                .then(response => response.json())
+                .then(data => {
+                    // Display results
+                    const resultsDiv = document.getElementById('similar-results');
+                    
+                    if (data.results && data.results.length > 0) {
+                        let html = `<h3>Verses similar to: "${data.reference}"</h3>`;
+                        
+                        data.results.forEach(verse => {
+                            const reference = `${verse.book_name} ${verse.chapter_num}:${verse.verse_num}`;
+                            const similarity = (verse.similarity * 100).toFixed(2);
+                            
+                            html += `
                                 <div class="verse">
-                                    <div class="reference">${verse.reference}</div>
-                                    <div class="text">${verse.text}</div>
+                                    <div class="verse-ref">${reference}</div>
+                                    <div class="verse-text">${verse.verse_text}</div>
+                                    <div class="score">Similarity: ${similarity}%</div>
                                 </div>
-                            `).join('');
+                            `;
+                        });
+                        
+                        resultsDiv.innerHTML = html;
+                    } else {
+                        resultsDiv.innerHTML = '<p>No similar verses found.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    document.getElementById('similar-results').innerHTML = '<p>Error finding similar verses.</p>';
+                });
+        }
+        
+        function compareTranslations() {
+            const reference = document.getElementById('compare-reference').value;
+            
+            if (!reference) {
+                alert('Please enter a verse reference');
+                return;
+            }
+            
+            // Display loading message
+            document.getElementById('compare-results').innerHTML = '<p>Comparing...</p>';
+            
+            // Perform the comparison
+            fetch(`/compare/translations?reference=${encodeURIComponent(reference)}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Display results
+                    const resultsDiv = document.getElementById('compare-results');
+                    
+                    if (data.verses && data.verses.length > 0) {
+                        let html = `<h3>Translations of: "${data.reference}"</h3>`;
+                        
+                        // Display verses
+                        html += '<div class="verses">';
+                        data.verses.forEach(verse => {
+                            html += `
+                                <div class="verse">
+                                    <div class="verse-ref">${verse.translation}</div>
+                                    <div class="verse-text">${verse.text}</div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        
+                        // Display similarities
+                        if (data.similarities && data.similarities.length > 0) {
+                            html += '<h3>Translation Similarities</h3>';
+                            html += '<div class="similarities">';
+                            
+                            data.similarities.forEach(similarity => {
+                                const similarityPercent = (similarity.similarity * 100).toFixed(2);
+                                html += `
+                                    <div class="similarity">
+                                        <span>${similarity.translation1} ↔ ${similarity.translation2}: ${similarityPercent}%</span>
+                                    </div>
+                                `;
+                            });
+                            
+                            html += '</div>';
                         }
-                    });
-            });
-        </script>
-    </body>
-    </html>
-    """
-
-@app.route('/search/vector')
-def vector_search():
-    """API endpoint for vector search."""
-    query = request.args.get('q', '')
-    translation = request.args.get('translation', 'KJV')
-    limit = min(int(request.args.get('limit', 10)), 50)
+                        
+                        resultsDiv.innerHTML = html;
+                    } else {
+                        resultsDiv.innerHTML = '<p>No translations found for this verse.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Comparison error:', error);
+                    document.getElementById('compare-results').innerHTML = '<p>Error comparing translations.</p>';
+                });
+        }
+        
+        // Add event listeners for enter key
+        document.getElementById('search-query').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        document.getElementById('verse-reference').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                findSimilarVerses();
+            }
+        });
+        
+        document.getElementById('compare-reference').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                compareTranslations();
+            }
+        });
+    </script>
+</body>
+</html>
+            """)
+        logger.info(f"Created default template at {template_path}")
     
-    if not query:
-        return jsonify({
-            'error': 'No search query provided',
-            'results': []
-        })
-    
-    results = search_verses(query, translation, limit)
-    
-    return jsonify({
-        'query': query,
-        'translation': translation,
-        'results': results
-    })
-
-@app.route('/search/keyword')
-def keyword_search():
-    """API endpoint for keyword search."""
-    query = request.args.get('q', '')
-    translation = request.args.get('translation', 'KJV')
-    limit = min(int(request.args.get('limit', 10)), 50)
-    
-    if not query:
-        return jsonify({
-            'error': 'No search query provided',
-            'results': []
-        })
-    
-    results = search_verses_keyword(query, translation, limit)
-    
-    return jsonify({
-        'query': query,
-        'translation': translation,
-        'results': results
-    })
-
-if __name__ == "__main__":
+    # Run the application
     app.run(debug=True, port=5050) 

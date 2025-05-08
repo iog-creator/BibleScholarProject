@@ -109,26 +109,35 @@ def log_api_interaction(endpoint, method, params, response, success):
     
     return interaction
 
-def log_web_interaction(route, query_params, response_type):
+def log_web_interaction(route, query_params=None, response_type=None, response_data=None, response_status=None):
     """Log a web interface interaction for training data."""
-    interactions = load_existing_data(INTERACTIONS_FILE)
+    if query_params is None:
+        query_params = {}
     
-    # Create new interaction entry
-    interaction = {
-        "timestamp": datetime.now().isoformat(),
-        "type": "web_interaction",
-        "route": route,
-        "query_params": query_params,
-        "response_type": response_type,
-        "formatted_query": f"How do I access {route} with parameters {json.dumps(query_params)}?",
-        "formatted_solution": f"Visit {route} and provide these parameters: {json.dumps(query_params)}"
-    }
-    
-    interactions.append(interaction)
-    save_jsonl(interactions, INTERACTIONS_FILE)
-    logger.info(f"Logged web interaction for route: {route}")
-    
-    return interaction
+    try:
+        interactions = load_existing_data(INTERACTIONS_FILE)
+        
+        # Create new interaction entry
+        interaction = {
+            "timestamp": datetime.now().isoformat(),
+            "type": "web_interaction",
+            "route": route,
+            "query_params": query_params,
+            "response_type": response_type,
+            "response_data": response_data,
+            "response_status": response_status,
+            "formatted_query": f"How do I access {route} with parameters {json.dumps(query_params)}?",
+            "formatted_solution": f"Visit {route} and provide these parameters: {json.dumps(query_params)}"
+        }
+        
+        interactions.append(interaction)
+        save_jsonl(interactions, INTERACTIONS_FILE)
+        logger.info(f"Logged web interaction for route: {route}")
+        
+        return interaction
+    except Exception as e:
+        logger.error(f"Error logging web interaction: {e}")
+        return None
 
 def log_question_answer(question, answer, context=None, category=None):
     """Log a user question and AI answer for training data."""

@@ -1,280 +1,131 @@
 # Bible Scholar Project
 
-A comprehensive Bible study tool providing access to original language lexicons, theological terms, and Bible text comparison across translations.
+A comprehensive Bible study and research tool leveraging artificial intelligence to explore theological concepts across different translations.
 
 ## Features
 
-- Access to Hebrew and Greek lexicons with Strong's IDs
-- Bible text browsing and search across multiple translations 
-- Theological term analysis and cross-language comparison
-- Text-verse-to-morphology-state (TVTMS) mapping for textual variants
-- Morphology analysis for Hebrew and Greek words
-- API for programmatic access to Bible data
-- Web interface for interactive Bible study
-- DSPy training data collection for AI model training
-- Semantic search capabilities powered by PostgreSQL's pgvector extension
+- Question answering about Bible content using advanced language models
+- Cross-language theological term exploration
+- Semantic search across Bible translations
+- Lexicon integration with Strong's numbers
+- Dynamic comparison of Bible translations
+- DSPy-powered fine-tuned LLM for theological accuracy
+- Advanced model optimization for 95%+ accuracy
 
-## Components
+## New Features - DSPy 2.6 Integration
 
-- **Database**: PostgreSQL database with Bible verses, lexicons, and morphology
-- **ETL Pipeline**: Data processing for importing and transforming Bible data
-- **API**: RESTful API for programmatic access to Bible data
-- **Web Interface**: Interactive web interface for Bible study
-- **DSPy Collection**: System for generating training data for AI models
+We've enhanced the project with DSPy 2.6 features including:
 
-## Setup
+- Advanced prompt optimization using the Teleprompter API
+- Improved model accuracy with theological assertions
+- MLflow integration for experiment tracking
+- Real-world Bible datasets (HuggingFace and Bible corpus)
+- Multi-turn conversation support with theological term handling
+- Enhanced validation dataset with Strong's ID theological questions
+- Additional training data sources from comprehensive Bible database
+- BetterTogether and InferRules optimization for high-accuracy theological reasoning
 
-### Prerequisites
+## Training Data
 
-- Python 3.8+
-- PostgreSQL 13+
-- Poetry (optional)
+The Bible QA system can be trained using multiple data sources:
+
+- Core Bible QA dataset (verse questions and answers)
+- Theological terms dataset with Strong's IDs
+- Cross-language concept training with Hebrew, Greek, and Arabic
+- Biblical proper names and relationships
+- Multi-turn conversation examples
+
+See [Additional Training Data](docs/features/additional_training_data.md) for details on utilizing all available data sources.
+
+## Getting Started
+
+### Requirements
+
+The project requires:
+
+- Python 3.9+
+- PostgreSQL with pgvector extension
+- LM Studio for local model inference
+- MLflow for experiment tracking
 
 ### Installation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/BibleScholarProject.git
-cd BibleScholarProject
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-# Or with Poetry
-poetry install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your database credentials
-```
-
-4. Set up the database:
-```bash
-make db-setup
-```
-
-5. Load data:
-```bash
-make etl
-```
+1. Clone the repository
+2. Create a virtual environment: `python -m venv venv`
+3. Activate the environment: `source venv/bin/activate` (Linux/Mac) or `venv\Scripts\activate` (Windows)
+4. Install dependencies: `pip install -r requirements.txt`
+5. Install additional DSPy requirements: `pip install -r requirements-dspy.txt`
+6. Configure environment variables in `.env` and `.env.dspy`
 
 ## Usage
 
-### Running the Application
-
-Start the API and web server:
-```bash
-python start_servers.py
-# Or with Make
-make run-all
-```
-
-This will start:
-- API server on http://localhost:5000
-- Web server on http://localhost:5001
-
-You can also start individual servers:
-```bash
-# Start only the API server
-python start_servers.py --api-only
-
-# Start only the web server
-python start_servers.py --web-only
-
-# Customize ports
-python start_servers.py --api-port 8000 --web-port 8001
-```
-
-The servers use Flask applications configured as:
-- API: `src.api.lexicon_api:app`
-- Web: `src.web_app`
-
-### API Usage
-
-Access the API endpoints:
+### Bible Q&A Web Interface
 
 ```bash
-# Get Hebrew lexicon entry
-curl http://localhost:5000/api/lexicon/hebrew/H7225
-
-# Search lexicon
-curl http://localhost:5000/api/lexicon/search?q=beginning&lang=hebrew
-
-# Get morphology info
-curl http://localhost:5000/api/morphology/hebrew/Ncmsc
+# Start the web interface
+python start_bible_qa_web.bat
 ```
 
-See the [API documentation](docs/API_REFERENCE.md) for more details.
+Access the API at http://localhost:8000/api/bible-qa
 
-### Web Interface
-
-Access the web interface at http://localhost:5001:
-
-- `/`: Home page with search
-- `/lexicon/hebrew/{strongs_id}`: Hebrew lexicon entry
-- `/lexicon/greek/{strongs_id}`: Greek lexicon entry
-- `/bible/{book}/{chapter}/{verse}`: Bible verse
-- `/search?q={term}`: Search Bible and lexicons
-- `/morphology/{lang}/{code}`: Morphology details
-
-### DSPy Training Data Collection
-
-The project includes a sophisticated system for generating training data for AI models:
+### Vector Search Demo
 
 ```bash
-# Check DSPy training data status
-make dspy-status
-
-# Refresh DSPy training data
-make dspy-refresh
-
-# Enhance training data with additional examples
-make dspy-enhance
-
-# Log user interactions as training data
-make dspy-log-interactions
+# Start the vector search demo
+python start_vector_search_web.bat
 ```
-
-See the [DSPy Training documentation](docs/DSPY_TRAINING.md) for more details.
-
-### Semantic Search
-
-The BibleScholarProject now includes semantic search capabilities powered by PostgreSQL's pgvector extension. This allows users to:
-
-- Search for Bible verses by meaning rather than just keywords
-- Find verses that are conceptually similar to a reference verse
-- Compare different translations using vector similarity
-
-The implementation processes over 62,000 Bible verses and generates 768-dimensional embeddings using LM Studio's embedding model. Searches use cosine similarity to find the most semantically relevant results.
-
-See the [Semantic Search documentation](docs/SEMANTIC_SEARCH.md) for detailed implementation and usage information.
-
-### Comprehensive Search
-
-The BibleScholarProject features a comprehensive search system that integrates all database resources:
-
-- **Multi-resource semantic search** across verses, lexicons, proper names, and cross-language mappings
-- **Theological term identification** with cross-language equivalents
-- **Proper name network** exploration with relationships and verse occurrences
-- **Arabic text integration** alongside Hebrew, Greek, and English translations
-- **Cross-language mapping** to find equivalent concepts across language boundaries
-
-The comprehensive search API provides advanced endpoints:
-
-```bash
-# Semantic search with cross-language results
-curl "http://localhost:5000/api/comprehensive/vector-search?q=God%20created%20the%20heavens&cross_language=true"
-
-# Search for theological terms
-curl "http://localhost:5000/api/comprehensive/theological-term-search?term=elohim&language=hebrew"
-
-# Search for biblical names and relationships
-curl "http://localhost:5000/api/comprehensive/name-search?name=Moses&include_relationships=true"
-```
-
-See the [Comprehensive Search documentation](docs/COMPREHENSIVE_SEMANTIC_SEARCH.md) for implementation details.
-
-#### Demo Application
-
-A standalone demo application is included to showcase the semantic search capabilities:
-```bash
-python -m src.utils.vector_search_demo
-```
-This runs a simple web interface on http://localhost:5050 that compares semantic search with traditional keyword search.
-
-## DSPy Integration
-
-The BibleScholarProject uses DSPy for building and optimizing AI models that work with Bible data. DSPy provides a systematic way to create, optimize, and deploy language model applications.
-
-### Key Features
-
-- **Automatic Prompt Optimization**: DSPy automatically optimizes prompts using examples
-- **Composable Modules**: Create reusable components for common NLP tasks
-- **Metric-Driven Evaluation**: Develop custom metrics for theological accuracy
-
-### Documentation and Training Data
-
-- [DSPy Usage Guide](docs/features/dspy_usage.md): Comprehensive guide to using DSPy in this project
-- [Documentation Organization Module](src/utils/documentation_organizer.py): Specialized DSPy module for documentation improvement
-- [Training Data](data/processed/dspy_training_data/): JSONL files with examples for training models
-
-### Getting Started with DSPy
-
-```bash
-# Train a documentation organization model
-python scripts/optimize_documentation_organizer.py --optimizer bootstrap
-
-# Explore the documentation organization dataset
-python scripts/train_documentation_patterns.py
-```
-
-See the [DSPy Usage Guide](docs/features/dspy_usage.md) for comprehensive documentation.
 
 ## Development
 
-### Project Structure
+### Database Setup
 
-```
-BibleScholarProject/
-├── data/                    # Data files
-│   ├── processed/           # Processed data files
-│   │   └── dspy_training_data/ # DSPy training datasets
-│   └── raw/                 # Raw data files
-├── docs/                    # Documentation
-├── scripts/                 # Scripts for data processing and utilities
-├── src/                     # Source code
-│   ├── api/                 # API endpoints
-│   │   └── comprehensive_search/ # Comprehensive search API
-│   ├── database/            # Database access
-│   ├── etl/                 # ETL pipeline
-│   │   ├── morphology/      # Morphology processing
-│   │   └── names/           # Name entity processing
-│   ├── tvtms/               # Text-verse-to-morphology-state mapping
-│   └── utils/               # Utility functions
-│       ├── dspy_collector.py # DSPy collection system
-│       └── vector_search_utils.py # Vector search utilities
-├── templates/               # Web templates
-└── tests/                   # Tests
-    ├── integration/         # Integration tests
-    │   └── test_comprehensive_search/ # Comprehensive search tests
-    └── unit/                # Unit tests
-```
-
-### Testing
-
-Run the tests:
 ```bash
-make test
+# Setup database security
+python setup_db_security.bat
+# Verify database schema
+python check_db_schema.py
 ```
 
-### Adding New Translations
+### Training Models
 
-To add a new Bible translation:
 ```bash
-python load_public_domain_bibles.py --translation={TRANSLATION_CODE}
+# Train DSPy Bible QA model
+python train_dspy_bible_qa.py
+# Train semantic search model
+python train_semantic_search_models.bat
 ```
 
-This will automatically trigger DSPy training data collection.
+### Model Optimization
 
-## Workspace Organization
+```bash
+# Start MLflow server
+mlflow ui --host 127.0.0.1 --port 5000
+# Optimize Bible QA model with BetterTogether
+optimize_bible_qa.bat better_together
+# Optimize Bible QA model with InferRules
+optimize_bible_qa.bat infer_rules
+```
 
-The project workspace has been organized for better clarity:
+### Validation
 
-- **Root Directory**: Contains only essential files needed for day-to-day development
-- **archive/**: Storage for older, less frequently used files
-  - **bible_loading_scripts/**: Deprecated Bible loading scripts (superseded by load_public_domain_bibles.py)
-  - **logs/**: Log files from various processes
-  - **tmp_files/**: Temporary files and scripts
-  - **tests/**: Older test files for reference
-- **tests/**: Contains all test files organized by type (unit, integration)
+```bash
+# Expand the validation dataset
+python scripts/expand_validation_dataset.py --num-single 40 --num-multi 10
+# Test the Bible QA system
+python test_enhanced_bible_qa.py --batch-test --use-lm-studio
+```
 
-## Contributing
+## Documentation
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+- [DSPy Integration](README_DSPY.md)
+- [Semantic Search](README_VECTOR_SEARCH.md)
+- [Bible Corpus Training](README_BIBLE_CORPUS_TRAINING.md)
+- [Bible QA System](README_BIBLE_QA.md)
+- [T5 Model Training](README_BIBLE_T5_TRAINING.md)
+- [Dataset Validation Expansion](docs/features/dataset_validation_expansion.md)
+- [Bible QA Optimization](docs/features/bible_qa_optimization.md)
+- [Additional Training Data](docs/features/additional_training_data.md)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.

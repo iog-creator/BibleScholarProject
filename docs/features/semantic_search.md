@@ -14,6 +14,25 @@ The BibleScholarProject implements semantic search for Bible verses using vector
 4. Exploring thematic connections between different parts of the Bible
 5. Integrating semantic search with lexical and morphological data
 
+## Required Models
+
+For semantic search functionality, these LM Studio models must be loaded:
+
+1. **Embedding Model**: `text-embedding-nomic-embed-text-v1.5@q8_0` 
+   - Required for generating vector embeddings
+   - Used by `src/utils/generate_verse_embeddings.py`
+
+2. **Chat Model**: `darkidol-llama-3.1-8b-instruct-1.2-uncensored` (or similar LLaMa model)
+   - Used for DSPy semantic search enhancements
+   - Required for query expansion and result reranking
+
+3. **T5 Model**: `gguf-flan-t5-small`
+   - Used for Bible QA functionality that builds on semantic search
+   - Required for the integrated Bible QA system
+
+The application automatically checks if these models are loaded at startup. 
+See [DSPy Model Management](../guides/dspy_model_management.md) for details on model verification and loading.
+
 ## Technical Implementation
 
 ### Database Schema
@@ -33,10 +52,28 @@ CREATE TABLE bible.verse_embeddings (
 CREATE INDEX ON bible.verse_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 ```
 
+### Configuration
+
+All configuration for semantic search is managed through environment variables:
+
+| Environment Variable | Description | Default Value |
+|---------------------|-------------|---------------|
+| LM_STUDIO_API_URL | URL for LM Studio API | http://localhost:1234/v1 |
+| LM_STUDIO_EMBEDDING_MODEL | Model used for embeddings | text-embedding-nomic-embed-text-v1.5@q8_0 |
+| LM_STUDIO_CHAT_MODEL | Model used for DSPy components | darkidol-llama-3.1-8b-instruct-1.2-uncensored |
+| LM_STUDIO_COMPLETION_MODEL | Model used for T5 fine-tuning | gguf-flan-t5-small |
+| POSTGRES_HOST | PostgreSQL host | localhost |
+| POSTGRES_PORT | PostgreSQL port | 5432 |
+| POSTGRES_DB | Database name | bible_db |
+| POSTGRES_USER | Database user | postgres |
+| POSTGRES_PASSWORD | Database password | postgres |
+
+**Note**: These variables can be found in `.env` and `.env.dspy` files, with `.env.dspy` taking precedence for DSPy operations.
+
 ### Embedding Generation
 
 Embeddings are generated using:
-- LM Studio API with `text-embedding-nomic-embed-text-v1.5@q8_0` model
+- LM Studio API with the model specified in `LM_STUDIO_EMBEDDING_MODEL`
 - Text processed in batches of 50 for optimal GPU utilization
 - 768-dimensional vector embeddings
 
@@ -53,9 +90,9 @@ def generate_embeddings(verses, batch_size=50):
         
         # Generate embeddings using LM Studio API
         response = requests.post(
-            "http://127.0.0.1:1234/v1/embeddings",
+            f"{os.getenv('LM_STUDIO_API_URL')}/embeddings",
             headers={"Content-Type": "application/json"},
-            json={"model": "text-embedding-nomic-embed-text-v1.5@q8_0", "input": texts}
+            json={"model": os.getenv("LM_STUDIO_EMBEDDING_MODEL"), "input": texts}
         )
         
         # Process response
@@ -70,6 +107,68 @@ def generate_embeddings(verses, batch_size=50):
     return all_embeddings
 ```
 
+### Model Verification
+
+The semantic search system verifies model availability at startup to prevent runtime errors:
+
+```python
+def verify_lm_studio_model(model_name):
+    """
+    Verify if a specific model is available in LM Studio and attempt to load it if not.
+    
+    Args:
+        model_name (str): The model to check for.
+        
+    Returns:
+        bool: True if the model is available or successfully loaded, False otherwise.
+    """
+    try:
+        response = requests.get(f"{lm_studio_api}/models")
+        if response.status_code == 200:
+            available_models = response.json().get("data", [])
+            model_loaded = any(model.get("id") == model_name for model in available_models)
+            
+            if model_loaded:
+                logger.info(f"Model '{model_name}' is available")
+                return True
+            else:
+                logger.warning(f"Model '{model_name}' not found in loaded models")
+                # Attempt to load the model
+                # ...
+        # ...
+    # ...
+```
+
+### DSPy Integration
+
+The system uses DSPy for advanced semantic search capabilities:
+
+1. **Query Expansion**: Expands user queries with related theological concepts
+2. **Result Reranking**: Reranks search results for better relevance
+3. **Multi-hop Reasoning**: Connects related biblical topics for complex queries
+
+The DSPy components are initialized with the LM Studio model specified in `LM_STUDIO_CHAT_MODEL`:
+
+```python
+def _init_dspy(self):
+    """Initialize DSPy components."""
+    try:
+        # Configure DSPy
+        lm_studio_api = os.getenv("LM_STUDIO_API_URL", "http://127.0.0.1:1234/v1")
+        lm = dspy.LM(
+            model_type="openai",
+            model=os.environ.get("LM_STUDIO_CHAT_MODEL", "gguf-flan-t5-small"),
+            api_base=lm_studio_api,
+            api_key="dummy"  # LM Studio doesn't need a real key
+        )
+        dspy.configure(lm=lm)
+        
+        # Initialize DSPy modules
+        self.query_expander = dspy.Predict(BibleQueryExpansion)
+        self.reranker = dspy.Predict(BibleVerseReranker)
+        self.topic_hopper = dspy.Predict(TopicHopping)
+```
+
 ### Supported Translations
 
 The system supports embeddings for these translations:
@@ -80,42 +179,46 @@ The system supports embeddings for these translations:
 - Tagged Greek New Testament (TAGNT)
 - English Standard Version (ESV) - sample only
 
-### API Implementation
+## Usage
 
-The semantic search API is implemented in `src/api/vector_search_api.py` with these endpoints:
+### Demo Applications
+
+Two demo applications are provided:
+
+1. **Basic Vector Search**: `python -m src.utils.vector_search_demo` (port 5050)
+2. **DSPy-Enhanced Search**: `python -m src.utils.dspy_search_demo` (port 5060)
+
+### API Endpoints
+
+The semantic search API provides these endpoints:
 
 1. `/api/vector-search`: Search for verses semantically related to a query
-   ```python
-   @app.route('/api/vector-search')
-   def vector_search():
-       query = request.args.get('q')
-       translation = request.args.get('translation', 'KJV')
-       limit = request.args.get('limit', 10, type=int)
-       
-       # Generate embedding for query
-       embedding = get_embedding(query)
-       embedding_array = format_vector_for_postgres(embedding)
-       
-       # Perform semantic search
-       with get_connection() as conn:
-           cursor = conn.cursor()
-           cursor.execute("""
-               SELECT v.book_name, v.chapter_num, v.verse_num, v.verse_text, 
-                      1 - (e.embedding <=> %s::vector) AS similarity
-               FROM bible.verse_embeddings e
-               JOIN bible.verses v ON e.verse_id = v.id
-               WHERE v.translation_source = %s
-               ORDER BY e.embedding <=> %s::vector
-               LIMIT %s
-           """, (embedding_array, translation, embedding_array, limit))
-           
-           results = cursor.fetchall()
-           
-       return jsonify(results)
-   ```
-
 2. `/api/similar-verses`: Find verses similar to a specified verse
 3. `/api/compare-translations`: Compare translations using vector similarity
+4. `/api/complex-search`: Perform multi-hop reasoning for theological queries
+
+## Troubleshooting
+
+### Model Verification and Loading
+
+If you encounter model-related issues:
+
+1. Use `check_required_models.bat` to verify all required models are loaded
+2. Use `load_t5_model.bat` to load the T5 model specifically
+3. Manually load models in LM Studio if automatic loading fails
+4. Check model names in `.env.dspy` match the actual models in LM Studio
+
+For detailed model management information, see [DSPy Model Management](../guides/dspy_model_management.md).
+
+### API and Database Issues
+
+Refer to the [pgvector_semantic_search](../../.cursor/rules/pgvector_semantic_search.mdc) cursor rule for detailed troubleshooting guidance for the entire semantic search system.
+
+## See Also
+
+- [DSPy Model Management](../guides/dspy_model_management.md)
+- [Bible QA Documentation](../features/bible_qa.md)
+- [API Reference](../reference/API_REFERENCE.md)
 
 ## Comprehensive Integration
 
@@ -353,34 +456,6 @@ The semantic search system has important considerations for different languages:
 3. **Greek Text (TAGNT)**
    - English queries may not effectively match Greek content
    - For best results with TAGNT, use Greek text in queries
-
-## Troubleshooting
-
-### LM Studio Connection Issues
-
-- Ensure LM Studio is running at http://127.0.0.1:1234
-- Verify the `text-embedding-nomic-embed-text-v1.5@q8_0` model is loaded
-- Check LM Studio API errors with direct API calls:
-  ```powershell
-  $headers = @{ "Content-Type" = "application/json" }
-  $body = @{ 
-      model = "text-embedding-nomic-embed-text-v1.5@q8_0"
-      input = "Test text" 
-  } | ConvertTo-Json
-  Invoke-WebRequest -Uri 'http://127.0.0.1:1234/v1/embeddings' -Method Post -Headers $headers -Body $body -UseBasicParsing
-  ```
-
-### Database Schema Issues
-
-- Ensure proper unique constraint on verse_id in verse_embeddings table
-- Check ON CONFLICT handling in INSERT statements
-- Verify proper vector dimension (768) in all embeddings
-
-### Search Query Issues
-
-- Verify correct book names (e.g., "Psalms" not "Psalm")
-- For Hebrew/Greek texts, use queries in the appropriate script
-- Check database connectivity and table existence
 
 ## Related Documentation
 

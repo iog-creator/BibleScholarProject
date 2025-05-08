@@ -35,4 +35,17 @@ flask>=2.3.0
 
 # Vector embeddings
 sentence-transformers>=2.2.2
-numpy>=1.23.0 
+numpy>=1.23.0
+
+# DSPy and HuggingFace integration
+dspy-ai>=2.0.0
+huggingface_hub>=0.23.0
+transformers>=4.38.0
+torch>=2.2.0
+
+# Claude API integration
+anthropic>=0.21.0
+
+# YAML Parsing for .mdc files
+PyYAML \nPyYAML\n
+PyYAML

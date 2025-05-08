@@ -1,3 +1,14 @@
+---
+title: Data Verification Guide
+description: Guide to data verification procedures, standards, and best practices in the BibleScholarProject.
+last_updated: 2024-06-10
+related_docs:
+  - ../../tests/README.md
+  - ../../scripts/README.md
+  - ../../data/README.md
+  - ./testing_framework.md
+  - ../../.cursor/rules/validation_dataset_expansion.mdc
+---
 # Data Verification Guide
 
 This document outlines the comprehensive approach to data verification in the BibleScholarProject. Ensuring data accuracy and integrity is critical when dealing with biblical texts and theological content.

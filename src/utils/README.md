@@ -1,62 +1,40 @@
-# Utility Functions
+---
+title: Utility Modules
+description: Utility functions and helpers for the BibleScholarProject
+last_updated: 2025-05-08
+related_docs:
+  - ../../README.md
+  - ../api/README.md
+  - ../database/README.md
+  - ../dspy_programs/README.md
+---
+# Utility Modules
 
-This directory contains utility functions and helpers used throughout the STEPBible Explorer project.
+This directory contains utility functions and helpers used throughout the BibleScholarProject.
 
 ## Modules
 
-- **file_utils.py**: File operations and path handling utilities
-- **db_utils.py**: Database connection and query utilities
-- **text_utils.py**: Text processing utilities for handling Bible references, Strong's numbers, etc.
-- **logging_config.py**: Logging configuration utilities for consistent logging across components
+- **`database_utils.py`**: Database connection and query utilities
+- **`logging_utils.py`**: Logging configuration and helpers
+- **`file_utils.py`**: File operations and path management
+- **`text_processing.py`**: Text processing and normalization utilities
+- **`vector_utils.py`**: Vector operations for semantic search
 
-## Usage Examples
+## Usage
 
-### File Utilities
+These utility functions are imported by other modules in the project to avoid code duplication and maintain consistency in common operations.
 
-```python
-from src.utils.file_utils import open_file_with_encoding, ensure_directory_exists
+## Adding New Utilities
 
-# Open a file with proper encoding
-with open_file_with_encoding("data/raw/sample.txt") as f:
-    content = f.read()
+When adding new utility functions:
 
-# Ensure a directory exists
-ensure_directory_exists("logs/etl")
-```
+1. Use the appropriate existing module or create a new one for a specific domain
+2. Document each function with docstrings
+3. Add tests for the new functions in the `tests/unit` directory
+4. Update this README if adding new modules
 
-### Database Utilities
-
-```python
-from src.utils.db_utils import get_connection_from_env, execute_query
-
-# Get a database connection
-conn = get_connection_from_env()
-
-# Execute a query
-results = execute_query(conn, "SELECT * FROM bible.books")
-```
-
-### Text Utilities
-
-```python
-from src.utils.text_utils import parse_reference, clean_strong_number
-
-# Parse a Bible reference
-book, chapter, verse = parse_reference("Gen.1.1")
-
-# Clean a Strong's number
-strongs_id = clean_strong_number("H0123")
-```
-
-### Logging Utilities
-
-```python
-from src.utils.logging_config import configure_etl_logging
-
-# Configure logging for an ETL component
-logger = configure_etl_logging("etl_lexicons")
-
-# Use the logger
-logger.info("Starting lexicon processing")
-logger.error("An error occurred: %s", str(error))
-``` 
+## Cross-References
+- [Main Project Documentation](../../README.md)
+- [API Documentation](../api/README.md)
+- [Database Documentation](../database/README.md)
+- [DSPy Programs](../dspy_programs/README.md) 

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bible Scholar - DSPy Model Training</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <style>
+        .result-box {
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            background-color: #f8f9fa;
+        }
+        .model-info {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+        .progress {
+            height: 25px;
+        }
+        .tab-content {
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 0.25rem 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Bible Scholar - DSPy Model Training</h1>
+        
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="train-tab" data-bs-toggle="tab" data-bs-target="#train" type="button" role="tab" aria-controls="train" aria-selected="true">Train Models</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="test-tab" data-bs-toggle="tab" data-bs-target="#test" type="button" role="tab" aria-controls="test" aria-selected="false">Test Models</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="status-tab" data-bs-toggle="tab" data-bs-target="#status" type="button" role="tab" aria-controls="status" aria-selected="false">Training Status</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- Train Tab -->
+            <div class="tab-pane fade show active" id="train" role="tabpanel" aria-labelledby="train-tab">
+                <h4>Train DSPy Models with HuggingFace Teacher</h4>
+                <p>Select teacher and student models to begin the training process.</p>
+                
+                <form id="trainForm" method="POST">
+                    <div class="mb-3">
+                        <label for="teacherSelect" class="form-label"><b>Teacher Model</b> (Large model from HuggingFace)</label>
+                        <select class="form-select" id="teacherSelect" name="teacher_model">
+                            <optgroup label="High Quality (Slower)">
+                                <option value="meta-llama/Llama-3.1-70B-Instruct">Llama-3.1-70B-Instruct</option>
+                                <option value="Qwen/Qwen3-32B">Qwen3-32B</option>
+                                <option value="anthropic/claude-3-opus-20240229">Claude-3-Opus</option>
+                            </optgroup>
+                            <optgroup label="Balanced (Recommended)">
+                                <option value="meta-llama/Llama-3.1-8B-Instruct">Llama-3.1-8B</option>
+                                <option value="microsoft/Phi-4-reasoning-plus">Phi-4-reasoning-plus</option>
+                                <option value="Qwen/Qwen3-8B">Qwen3-8B</option>
+                            </optgroup>
+                            <optgroup label="Fast">
+                                <option value="microsoft/Phi-4-mini-reasoning" selected>Phi-4-mini-reasoning</option>
+                                <option value="HuggingFaceH4/zephyr-7b-beta">Zephyr-7B-Beta</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="studentSelect" class="form-label"><b>Student Model</b> (Local model to be trained)</label>
+                        <select class="form-select" id="studentSelect" name="student_model">
+                            <option value="google/flan-t5-small" selected>flan-t5-small (Small, fast)</option>
+                            <option value="google/flan-t5-base">flan-t5-base (Medium)</option>
+                            <option value="google/flan-t5-large">flan-t5-large (Larger, better quality)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="dataPath" class="form-label"><b>Training Data Path</b></label>
+                        <input type="text" class="form-control" id="dataPath" name="data_path" value="data/processed/dspy_training_data/qa_dataset.jsonl">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="trainButton">Start Training</button>
+                </form>
+                
+                <div id="trainResponse" class="result-box mt-3" style="display: none;"></div>
+            </div>
+            
+            <!-- Test Tab -->
+            <div class="tab-pane fade" id="test" role="tabpanel" aria-labelledby="test-tab">
+                <h4>Test Trained Models</h4>
+                <p>Use your trained models to answer Bible questions.</p>
+                
+                <form id="testForm" method="POST">
+                    <div class="mb-3">
+                        <label for="context" class="form-label">Bible Verse or Passage (Context)</label>
+                        <textarea class="form-control" id="context" name="context" rows="3" required>{{ context }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="question" class="form-label">Your Question</label>
+                        <input type="text" class="form-control" id="question" name="question" required value="{{ question }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Test Model</button>
+                </form>
+                
+                {% if result %}
+                <div class="result-box">
+                    <h5>Answer:</h5>
+                    <p>{{ result.result.answer }}</p>
+                    <div class="model-info">
+                        <span>Student model: {{ result.result.student_model }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div id="testResponse" class="result-box mt-3" style="display: none;"></div>
+            </div>
+            
+            <!-- Status Tab -->
+            <div class="tab-pane fade" id="status" role="tabpanel" aria-labelledby="status-tab">
+                <h4>Training Status</h4>
+                <button id="refreshStatus" class="btn btn-outline-secondary mb-3">Refresh Status</button>
+                
+                <div id="statusInfo">
+                    <div class="mb-3">
+                        <label class="form-label">Training Progress:</label>
+                        <div class="progress">
+                            <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Current Task:</label>
+                        <input type="text" class="form-control" id="currentTask" readonly value="Not started">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label">Start Time:</label>
+                                <input type="text" class="form-control" id="startTime" readonly value="-">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="mb-3">
+                                <label class="form-label">Completion Time:</label>
+                                <input type="text" class="form-control" id="completionTime" readonly value="-">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="errorBox" class="alert alert-danger" style="display: none;"></div>
+                    <div id="resultsBox" class="result-box" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h4>Sample Training Data Example:</h4>
+            <pre class="bg-light p-3 rounded">
+{
+  "context": "In the beginning God created the heavens and the earth.",
+  "question": "Who created the heavens and the earth?",
+  "answer": "God created the heavens and the earth."
+}
+            </pre>
+            <p>
+                <strong>How It Works:</strong> DSPy uses a teacher-student approach where a large 
+                HuggingFace model (teacher) guides the training of a smaller local model (student).
+                This allows you to run inference with a smaller model while maintaining good quality.
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Pre-populate with sample data if empty
+        window.onload = function() {
+            if (!document.getElementById('context').value) {
+                document.getElementById('context').value = "In the beginning God created the heavens and the earth.";
+            }
+            if (!document.getElementById('question').value) {
+                document.getElementById('question').value = "Who created the heavens and the earth?";
+            }
+            
+            // Add event listeners
+            document.getElementById('trainForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                startTraining();
+            });
+            
+            document.getElementById('testForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                testModel();
+            });
+            
+            document.getElementById('refreshStatus').addEventListener('click', function() {
+                checkStatus();
+            });
+            
+            // Check status on page load
+            checkStatus();
+        };
+        
+        function startTraining() {
+            const trainButton = document.getElementById('trainButton');
+            trainButton.disabled = true;
+            trainButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Starting...';
+            
+            const formData = {
+                teacher_model: document.getElementById('teacherSelect').value,
+                student_model: document.getElementById('studentSelect').value,
+                data_path: document.getElementById('dataPath').value
+            };
+            
+            fetch('/api/dspy/train', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseDiv = document.getElementById('trainResponse');
+                responseDiv.style.display = 'block';
+                
+                if (data.status === 'success') {
+                    responseDiv.innerHTML = `<div class="alert alert-success">Training job started successfully.</div>`;
+                    // Switch to status tab
+                    document.getElementById('status-tab').click();
+                } else {
+                    responseDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error || data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('trainResponse').style.display = 'block';
+                document.getElementById('trainResponse').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            })
+            .finally(() => {
+                trainButton.disabled = false;
+                trainButton.innerHTML = 'Start Training';
+            });
+        }
+        
+        function testModel() {
+            const context = document.getElementById('context').value;
+            const question = document.getElementById('question').value;
+            
+            const testButton = document.getElementById('testForm').querySelector('button[type="submit"]');
+            testButton.disabled = true;
+            testButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Testing...';
+            
+            const formData = {
+                context: context,
+                question: question
+            };
+            
+            fetch('/api/dspy/example', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.style.display = 'block';
+                
+                if (data.result && data.result.answer) {
+                    responseDiv.innerHTML = `
+                        <h5>Answer:</h5>
+                        <p>${data.result.answer}</p>
+                        <div class="model-info">
+                            <span>Student model: ${data.result.student_model || 'Unknown'}</span>
+                        </div>
+                    `;
+                } else {
+                    responseDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'No answer generated'}</div>`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('testResponse').style.display = 'block';
+                document.getElementById('testResponse').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            })
+            .finally(() => {
+                testButton.disabled = false;
+                testButton.innerHTML = 'Test Model';
+            });
+        }
+        
+        function checkStatus() {
+            const refreshButton = document.getElementById('refreshStatus');
+            refreshButton.disabled = true;
+            refreshButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Refreshing...';
+            
+            fetch('/api/dspy/status')
+                .then(response => response.json())
+                .then(data => {
+                    const status = data.training_status;
+                    
+                    if (status) {
+                        // Update progress bar
+                        const progressBar = document.getElementById('progressBar');
+                        progressBar.style.width = `${status.progress}%`;
+                        progressBar.innerHTML = `${status.progress}%`;
+                        progressBar.setAttribute('aria-valuenow', status.progress);
+                        
+                        // Update current task
+                        document.getElementById('currentTask').value = status.current_task || 'Not started';
+                        
+                        // Update times
+                        document.getElementById('startTime').value = status.start_time ? new Date(status.start_time).toLocaleString() : '-';
+                        document.getElementById('completionTime').value = status.completion_time ? new Date(status.completion_time).toLocaleString() : '-';
+                        
+                        // Handle errors
+                        const errorBox = document.getElementById('errorBox');
+                        if (status.error) {
+                            errorBox.style.display = 'block';
+                            errorBox.innerHTML = `<strong>Error:</strong> ${status.error}`;
+                        } else {
+                            errorBox.style.display = 'none';
+                        }
+                        
+                        // Handle results
+                        const resultsBox = document.getElementById('resultsBox');
+                        if (status.results) {
+                            resultsBox.style.display = 'block';
+                            resultsBox.innerHTML = `
+                                <h5>Training Results:</h5>
+                                <p><strong>Training Duration:</strong> ${status.results.metrics?.training_duration || 'Unknown'}</p>
+                                <p><strong>Examples Trained:</strong> ${status.results.metrics?.examples_trained || 'Unknown'}</p>
+                                <p><strong>Model Saved To:</strong> ${status.results.save_paths?.dspy_model_path || 'Unknown'}</p>
+                            `;
+                        } else {
+                            resultsBox.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking status:', error);
+                })
+                .finally(() => {
+                    refreshButton.disabled = false;
+                    refreshButton.innerHTML = 'Refresh Status';
+                });
+        }
+    </script>
+</body>
+</html> 

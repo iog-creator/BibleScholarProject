@@ -1,50 +1,43 @@
 #!/usr/bin/env python3
 """
-Generate embeddings for Bible verses and store them in the database.
+Verse Embeddings Generator
 
-This script:
-1. Retrieves KJV, ASV, TAHOT, TAGNT, and ESV verses from the database
-2. Generates embeddings using LM Studio API with efficient batching
-3. Stores embeddings in the verse_embeddings table
-4. Creates indexes for similarity search
+This script generates embeddings for Bible verses using LM Studio API
+and stores them in the database with the pgvector extension.
 
 Usage:
-    python -m src.utils.generate_verse_embeddings [translation_sources]
+    python -m src.utils.generate_verse_embeddings [--translation TRANSLATION] [--limit LIMIT] [--batch_size BATCH_SIZE]
 
-Arguments:
-    translation_sources: Optional space-separated list of translation sources to process
-                        (e.g., "KJV ASV TAHOT TAGNT ESV"). If not provided, all will be processed.
-
-Environment Variables:
-    POSTGRES_HOST: Database host (default: localhost)
-    POSTGRES_PORT: Database port (default: 5432)
-    POSTGRES_DB: Database name (default: bible_db)
-    POSTGRES_USER: Database user (default: postgres)
-    POSTGRES_PASSWORD: Database password
-    LM_STUDIO_API_URL: LM Studio API URL (default: http://127.0.0.1:1234)
+Options:
+    --translation    Bible translation to process (default: all available)
+    --limit          Maximum number of verses to process (default: all)
+    --batch_size     Number of verses to process in each batch (default: 50)
 """
 
 import os
 import sys
-import time
 import logging
-import json
-import requests
-from typing import List, Dict, Any, Optional, Tuple
-import psycopg
-from psycopg.rows import dict_row
-import numpy as np
-from tqdm import tqdm
-from dotenv import load_dotenv
-import concurrent.futures
 import time
+import argparse
+from pathlib import Path
+import requests
+import psycopg2
+from psycopg2.extras import execute_values
+from dotenv import load_dotenv
+
+# Import secure connection (if available, otherwise fall back to direct connection)
+try:
+    from src.database.secure_connection import get_secure_connection
+    USE_SECURE_CONNECTION = True
+except ImportError:
+    USE_SECURE_CONNECTION = False
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/embeddings.log"),
+        logging.FileHandler("logs/verse_embeddings.log", mode="a"),
         logging.StreamHandler()
     ]
 )
@@ -54,80 +47,130 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # LM Studio API settings
-LM_STUDIO_API_URL = os.getenv("LM_STUDIO_API_URL", "http://127.0.0.1:1234")
-EMBEDDING_MODEL = "text-embedding-nomic-embed-text-v1.5@q8_0:2"
-BATCH_SIZE = 50  # Process in larger batches for better GPU utilization
-MAX_WORKERS = 4  # Number of parallel workers for processing
+LM_STUDIO_API_URL = os.getenv("LM_STUDIO_API_URL", "http://127.0.0.1:1234/v1")
+EMBEDDING_MODEL = os.getenv("LM_STUDIO_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5@q8_0")
 
-# All available translation sources
-ALL_TRANSLATIONS = ["KJV", "ASV", "TAHOT", "TAGNT", "ESV"]
+# Database connection settings
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+DB_NAME = os.getenv("POSTGRES_DB", "bible_db")
+DB_USER = os.getenv("POSTGRES_USER", "postgres")
+DB_PASS = os.getenv("POSTGRES_PASSWORD", "postgres")
 
 def get_db_connection():
-    """Get a database connection with the appropriate configuration."""
-    conn = psycopg.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=os.getenv("POSTGRES_PORT", "5432"),
-        dbname=os.getenv("POSTGRES_DB", "bible_db"),
-        user=os.getenv("POSTGRES_USER", "postgres"),
-        password=os.getenv("POSTGRES_PASSWORD", "postgres"),
-        row_factory=dict_row
-    )
-    return conn
-
-def get_verses(translation_sources: List[str], limit: int = None) -> List[Dict[str, Any]]:
-    """
-    Retrieve Bible verses from the database for the specified translations.
-    
-    Args:
-        translation_sources: List of translation sources (e.g., ['KJV', 'ASV'])
-        limit: Optional limit on number of verses to retrieve (for testing)
-        
-    Returns:
-        List of verse dictionaries
-    """
-    placeholders = ", ".join(["%s"] * len(translation_sources))
-    query = f"""
-        SELECT id, book_name, chapter_num, verse_num, verse_text, translation_source
-        FROM bible.verses
-        WHERE translation_source IN ({placeholders})
-        ORDER BY book_name, chapter_num, verse_num, translation_source
-    """
-    
-    if limit:
-        query += f" LIMIT {limit}"
-    
-    conn = get_db_connection()
+    """Get a connection to the database."""
     try:
-        with conn.cursor() as cur:
-            cur.execute(query, translation_sources)
-            verses = cur.fetchall()
-            logger.info(f"Retrieved {len(verses)} verses from the database")
-            return verses
+        # Use secure connection in write mode if available
+        if USE_SECURE_CONNECTION:
+            try:
+                conn = get_secure_connection(mode='write')
+                logger.info("Using secure database connection with WRITE permission")
+                return conn
+            except ValueError as e:
+                logger.error(f"Error getting write permission: {e}")
+                logger.warning("This operation requires write access to the database.")
+                logger.warning("Please set POSTGRES_WRITE_PASSWORD in your .env file.")
+                sys.exit(1)
+                
+        # Fall back to direct connection if secure connection not available
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASS
+        )
+        logger.warning("Using direct database connection (not secure)")
+        return conn
     except Exception as e:
-        logger.error(f"Error retrieving verses: {e}")
+        logger.error(f"Database connection error: {e}")
+        raise
+
+def setup_database():
+    """Set up the database schema for verse embeddings."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if vector extension is installed
+        cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+        if not cursor.fetchone():
+            logger.info("Creating vector extension...")
+            cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
+            conn.commit()
+        
+        # Create verse_embeddings table if it doesn't exist
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bible.verse_embeddings (
+            id SERIAL PRIMARY KEY,
+            verse_id INTEGER NOT NULL REFERENCES bible.verses(id),
+            book_name VARCHAR(50) NOT NULL,
+            chapter_num INTEGER NOT NULL,
+            verse_num INTEGER NOT NULL,
+            translation_source VARCHAR(20) NOT NULL,
+            embedding VECTOR(768) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(verse_id, translation_source)
+        )
+        """)
+        
+        # Create indexes
+        cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_verse_embeddings_verse_id 
+        ON bible.verse_embeddings(verse_id)
+        """)
+        
+        cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_verse_embeddings_translation 
+        ON bible.verse_embeddings(translation_source)
+        """)
+        
+        # Create IVFFlat index for faster similarity search
+        try:
+            cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_verse_embeddings_vector 
+            ON bible.verse_embeddings 
+            USING ivfflat (embedding vector_cosine_ops) 
+            WITH (lists = 100)
+            """)
+        except Exception as e:
+            logger.warning(f"Could not create IVFFlat index: {e}")
+            logger.info("Creating basic vector index instead")
+            cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_verse_embeddings_vector 
+            ON bible.verse_embeddings 
+            USING hnsw (embedding vector_cosine_ops)
+            """)
+        
+        conn.commit()
+        logger.info("Database setup completed successfully")
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error setting up database: {e}")
         raise
     finally:
+        cursor.close()
         conn.close()
 
-def get_batch_embeddings(texts: List[str]) -> List[List[float]]:
+def get_embedding(text):
     """
-    Get embeddings for a batch of texts using LM Studio API.
+    Get embedding vector for text using LM Studio API.
     
     Args:
-        texts: List of texts to embed
+        text: Text to encode
         
     Returns:
-        List of embedding vectors
+        List of floats representing the embedding vector
     """
     try:
         response = requests.post(
-            f"{LM_STUDIO_API_URL}/v1/embeddings",
+            f"{LM_STUDIO_API_URL}/embeddings",
             headers={"Content-Type": "application/json"},
             json={
                 "model": EMBEDDING_MODEL,
-                "input": texts
+                "input": text
             },
-            timeout=120  # Increased timeout for batch processing
+            timeout=60
         )
         
         if response.status_code != 200:
@@ -135,243 +178,216 @@ def get_batch_embeddings(texts: List[str]) -> List[List[float]]:
             return None
         
         data = response.json()
-        if "data" in data and len(data["data"]) > 0:
-            # Extract all embeddings from the response
-            embeddings = []
-            for item in data["data"]:
-                if "embedding" in item:
-                    # Convert all values to float to ensure consistent type
-                    embedding = [float(val) for val in item["embedding"]]
-                    embeddings.append(embedding)
-                else:
-                    logger.error(f"Missing embedding in response item: {item}")
-                    embeddings.append(None)
-            return embeddings
+        if "data" in data and len(data["data"]) > 0 and "embedding" in data["data"][0]:
+            # Ensure all values in the embedding are floats
+            embedding = [float(val) for val in data["data"][0]["embedding"]]
+            return embedding
         else:
             logger.error(f"Unexpected response format: {data}")
             return None
     except Exception as e:
-        logger.error(f"Error getting batch embeddings from LM Studio: {e}")
+        logger.error(f"Error getting embedding from LM Studio: {e}")
         return None
 
-def process_verse_batch(verse_batch: List[Dict[str, Any]], conn) -> Tuple[int, int]:
+def get_verses_to_process(translation=None, limit=None):
     """
-    Process a batch of verses to generate and store embeddings.
+    Get verses to process.
     
     Args:
-        verse_batch: List of verse dictionaries
-        conn: Database connection
+        translation: Bible translation to process (optional)
+        limit: Maximum number of verses to process (optional)
         
     Returns:
-        Tuple of (success_count, error_count)
+        List of verse dictionaries
     """
-    success_count = 0
-    error_count = 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
     
-    # Extract texts for batch embedding
-    texts = [verse["verse_text"] for verse in verse_batch]
+    try:
+        # Construct the query based on parameters
+        query = """
+        SELECT v.id AS verse_id, b.book_name, v.chapter_num, v.verse_num, 
+               v.verse_text, v.translation_source
+        FROM bible.verses v
+        JOIN bible.books b ON v.book_id = b.book_id
+        """
+        
+        params = []
+        conditions = []
+        
+        # Add condition for translation if specified
+        if translation:
+            conditions.append("v.translation_source = %s")
+            params.append(translation)
+        
+        # Add condition to exclude verses already processed
+        conditions.append("""
+        NOT EXISTS (
+            SELECT 1 FROM bible.verse_embeddings ve 
+            WHERE ve.verse_id = v.id AND ve.translation_source = v.translation_source
+        )
+        """)
+        
+        # Add WHERE clause if there are conditions
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        
+        # Add LIMIT if specified
+        if limit:
+            query += " LIMIT %s"
+            params.append(limit)
+        
+        # Execute the query
+        cursor.execute(query, params)
+        verses = [dict(zip([column[0] for column in cursor.description], row)) 
+                 for row in cursor.fetchall()]
+        
+        logger.info(f"Found {len(verses)} verses to process")
+        return verses
     
-    # Get embeddings for all texts in the batch
-    batch_embeddings = get_batch_embeddings(texts)
+    except Exception as e:
+        logger.error(f"Error getting verses to process: {e}")
+        return []
     
-    if not batch_embeddings or len(batch_embeddings) != len(verse_batch):
-        logger.error(f"Failed to get embeddings for batch. Expected {len(verse_batch)}, got {len(batch_embeddings) if batch_embeddings else 0}")
-        return 0, len(verse_batch)
-    
-    # Insert embeddings into the database
-    with conn.cursor() as cur:
-        for i, (verse, embedding) in enumerate(zip(verse_batch, batch_embeddings)):
-            if embedding:
-                try:
-                    cur.execute(
-                        """
-                        INSERT INTO bible.verse_embeddings 
-                            (verse_id, book_name, chapter_num, verse_num, translation_source, embedding)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (verse_id) DO UPDATE 
-                        SET embedding = EXCLUDED.embedding
-                        """,
-                        (
-                            verse["id"], 
-                            verse["book_name"],
-                            verse["chapter_num"],
-                            verse["verse_num"], 
-                            verse["translation_source"],
-                            embedding
-                        )
-                    )
-                    success_count += 1
-                except Exception as e:
-                    logger.error(f"Error inserting embedding for verse {verse['id']}: {e}")
-                    error_count += 1
-            else:
-                logger.warning(f"Missing embedding for verse {verse['id']}")
-                error_count += 1
-    
-    conn.commit()
-    return success_count, error_count
+    finally:
+        cursor.close()
+        conn.close()
 
-def generate_embeddings(verses: List[Dict[str, Any]]) -> None:
+def store_embeddings(embeddings_data):
     """
-    Generate embeddings for verses and store them in the database.
+    Store embeddings in the database.
+    
+    Args:
+        embeddings_data: List of (verse_id, book_name, chapter_num, verse_num, 
+                         translation_source, embedding_vector) tuples
+        
+    Returns:
+        Number of embeddings stored
+    """
+    if not embeddings_data:
+        return 0
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Prepare data with proper vector format
+        formatted_data = []
+        for verse_id, book_name, chapter_num, verse_num, translation_source, embedding in embeddings_data:
+            # Convert embedding list to PostgreSQL vector format
+            embedding_str = f"[{','.join(str(x) for x in embedding)}]"
+            formatted_data.append((verse_id, book_name, chapter_num, verse_num, translation_source, embedding_str))
+        
+        # Use execute_values for better performance
+        execute_values(
+            cursor,
+            """
+            INSERT INTO bible.verse_embeddings 
+            (verse_id, book_name, chapter_num, verse_num, translation_source, embedding)
+            VALUES %s
+            ON CONFLICT (verse_id, translation_source) DO UPDATE 
+            SET embedding = EXCLUDED.embedding,
+                created_at = CURRENT_TIMESTAMP
+            """,
+            formatted_data,
+            template="(%s, %s, %s, %s, %s, %s::vector)"
+        )
+        
+        conn.commit()
+        return len(embeddings_data)
+    
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error storing embeddings: {e}")
+        return 0
+    
+    finally:
+        cursor.close()
+        conn.close()
+
+def process_verses_in_batches(verses, batch_size=50):
+    """
+    Process verses in batches and generate embeddings.
     
     Args:
         verses: List of verse dictionaries
+        batch_size: Number of verses to process in each batch
+        
+    Returns:
+        Total number of embeddings generated
     """
-    # Check if LM Studio API is available
-    try:
-        logger.info(f"Checking LM Studio API at {LM_STUDIO_API_URL}...")
-        response = requests.get(f"{LM_STUDIO_API_URL}/v1/models", timeout=5)
-        if response.status_code != 200:
-            logger.error(f"LM Studio API is not available: {response.status_code} - {response.text}")
-            raise Exception("LM Studio API is not available")
-        
-        logger.info(f"LM Studio API is available. Available models: {response.json()}")
-    except Exception as e:
-        logger.error(f"Error connecting to LM Studio API: {e}")
-        raise
+    total_processed = 0
+    total_stored = 0
     
-    conn = get_db_connection()
-    try:
-        # Group verses by translation for better logging
-        translation_sources = list(set(verse["translation_source"] for verse in verses))
-        logger.info(f"Processing embeddings for translations: {translation_sources}")
+    for i in range(0, len(verses), batch_size):
+        batch = verses[i:i+batch_size]
+        logger.info(f"Processing batch {i//batch_size + 1}/{(len(verses) + batch_size - 1)//batch_size} "
+                   f"({len(batch)} verses)")
         
-        # Process verses in batches
-        total_success = 0
-        total_errors = 0
+        embeddings_data = []
         
-        # Group verses into batches
-        verse_batches = [verses[i:i + BATCH_SIZE] for i in range(0, len(verses), BATCH_SIZE)]
-        logger.info(f"Processing {len(verses)} verses in {len(verse_batches)} batches of size {BATCH_SIZE}")
-        
-        for i, batch in enumerate(tqdm(verse_batches, desc="Processing batches")):
-            success, errors = process_verse_batch(batch, conn)
-            total_success += success
-            total_errors += errors
+        for verse in batch:
+            try:
+                # Get the embedding
+                embedding = get_embedding(verse["verse_text"])
+                
+                if embedding:
+                    # Add to batch data
+                    embeddings_data.append((
+                        verse["verse_id"],
+                        verse["book_name"],
+                        verse["chapter_num"],
+                        verse["verse_num"],
+                        verse["translation_source"],
+                        embedding
+                    ))
+                    total_processed += 1
+                else:
+                    logger.warning(f"Failed to generate embedding for verse {verse['book_name']} "
+                                  f"{verse['chapter_num']}:{verse['verse_num']} ({verse['translation_source']})")
             
-            # Log progress
-            if (i + 1) % 10 == 0 or (i + 1) == len(verse_batches):
-                logger.info(f"Processed {i+1}/{len(verse_batches)} batches. Success: {total_success}, Errors: {total_errors}")
-                logger.info(f"Progress: {((i+1)/len(verse_batches))*100:.2f}% complete")
+            except Exception as e:
+                logger.error(f"Error processing verse {verse['book_name']} "
+                            f"{verse['chapter_num']}:{verse['verse_num']}: {e}")
         
-        logger.info(f"Embedding generation completed. Successful: {total_success}, Errors: {total_errors}")
+        # Store the batch
+        stored = store_embeddings(embeddings_data)
+        total_stored += stored
+        
+        logger.info(f"Stored {stored} embeddings in this batch")
+        
+        # Sleep briefly to avoid overwhelming the API
+        time.sleep(0.5)
     
-    except Exception as e:
-        logger.error(f"Error in embeddings generation: {e}")
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
-
-def create_index():
-    """Create an index on the embeddings table for faster similarity searches."""
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            logger.info("Creating index on verse_embeddings table...")
-            # Create an index using ivfflat for approximate nearest neighbor search
-            cur.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_verse_embeddings_vector 
-                ON bible.verse_embeddings 
-                USING ivfflat (embedding vector_cosine_ops) 
-                WITH (lists = 100)
-                """
-            )
-        conn.commit()
-        logger.info("Index created successfully")
-    except Exception as e:
-        logger.error(f"Error creating index: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
-
-def get_embedding_stats():
-    """Get statistics about existing embeddings in the database."""
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            # Get total verse count
-            cur.execute("SELECT COUNT(*) FROM bible.verses")
-            total_verses = cur.fetchone()["count"]
-            
-            # Get total embedding count
-            cur.execute("SELECT COUNT(*) FROM bible.verse_embeddings")
-            total_embeddings = cur.fetchone()["count"]
-            
-            # Get embedding count by translation
-            cur.execute("""
-                SELECT translation_source, COUNT(*) as count 
-                FROM bible.verse_embeddings 
-                GROUP BY translation_source 
-                ORDER BY translation_source
-            """)
-            translation_counts = cur.fetchall()
-            
-            logger.info(f"Database has {total_verses} verses and {total_embeddings} embeddings")
-            logger.info(f"Overall coverage: {(total_embeddings/total_verses)*100:.2f}%")
-            
-            for row in translation_counts:
-                logger.info(f"  {row['translation_source']}: {row['count']} embeddings")
-            
-            return {
-                "total_verses": total_verses,
-                "total_embeddings": total_embeddings,
-                "translations": {row["translation_source"]: row["count"] for row in translation_counts}
-            }
-    except Exception as e:
-        logger.error(f"Error getting embedding stats: {e}")
-        return None
-    finally:
-        conn.close()
+    return total_stored
 
 def main():
-    """Main entry point."""
+    """Main function."""
+    parser = argparse.ArgumentParser(description="Generate verse embeddings")
+    parser.add_argument("--translation", help="Bible translation to process")
+    parser.add_argument("--limit", type=int, help="Maximum number of verses to process")
+    parser.add_argument("--batch_size", type=int, default=50, help="Batch size for processing")
+    args = parser.parse_args()
+    
     try:
-        start_time = time.time()
+        # Set up the database
+        setup_database()
         
-        # Parse command-line arguments for specific translations to process
-        if len(sys.argv) > 1:
-            translation_sources = sys.argv[1:] 
-            for source in translation_sources:
-                if source not in ALL_TRANSLATIONS:
-                    logger.error(f"Unknown translation source: {source}")
-                    logger.error(f"Available translations: {ALL_TRANSLATIONS}")
-                    sys.exit(1)
-        else:
-            # Process all translations by default
-            translation_sources = ALL_TRANSLATIONS
-        
-        logger.info(f"Starting embedding generation for translations: {translation_sources}")
-        
-        # Get initial stats
-        logger.info("Getting initial embedding statistics...")
-        initial_stats = get_embedding_stats()
-        
-        # Get verses for specified translations
-        verses = get_verses(translation_sources)
+        # Get verses to process
+        verses = get_verses_to_process(args.translation, args.limit)
         
         if not verses:
-            logger.warning(f"No verses found for translations: {translation_sources}")
-            sys.exit(0)
+            logger.info("No verses to process")
+            return
         
-        # Generate and store embeddings
-        generate_embeddings(verses)
+        # Process verses in batches
+        total_stored = process_verses_in_batches(verses, args.batch_size)
         
-        # Create index for fast similarity search
-        create_index()
-        
-        # Get final stats
-        logger.info("Getting final embedding statistics...")
-        final_stats = get_embedding_stats()
-        
-        elapsed_time = time.time() - start_time
-        logger.info(f"Embedding generation completed in {elapsed_time:.2f} seconds")
-        logger.info(f"Average time per verse: {elapsed_time/len(verses):.4f} seconds")
+        logger.info(f"Successfully generated and stored {total_stored} verse embeddings")
+    
     except Exception as e:
         logger.error(f"Error in main function: {e}")
-        raise
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 

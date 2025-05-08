@@ -21,8 +21,12 @@
                         <div class="form-group mb-3">
                             <label for="translation">Translation:</label>
                             <select class="form-control" id="translation" name="translation">
+                                {% for trans in available_translations %}
+                                <option value="{{ trans }}" {% if translation == trans %}selected{% endif %}>{{ trans }}</option>
+                                {% else %}
                                 <option value="KJV" {% if translation == 'KJV' %}selected{% endif %}>King James Version (KJV)</option>
                                 <option value="ASV" {% if translation == 'ASV' %}selected{% endif %}>American Standard Version (ASV)</option>
+                                {% endfor %}
                             </select>
                         </div>
                         

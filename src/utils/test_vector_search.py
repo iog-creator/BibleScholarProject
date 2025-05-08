@@ -1,28 +1,31 @@
 #!/usr/bin/env python3
 """
-Test script for pgvector search functionality.
+Test Vector Search Functionality
 
-This script:
-1. Connects to the database
-2. Generates an embedding for a test query using LM Studio
-3. Searches for similar verses using pgvector
-4. Prints the results
-
-Usage:
-    python -m src.utils.test_vector_search
+This script tests the vector search functionality by:
+1. Checking if the pgvector extension is installed
+2. Checking if the verse_embeddings table exists
+3. Testing a simple vector search query
+4. Testing the similarity search between verses
 """
 
 import os
-import requests
+import sys
 import logging
-import psycopg
-from psycopg.rows import dict_row
+import json
+import requests
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("logs/vector_search_test.log", mode="a"),
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -30,20 +33,102 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # LM Studio API settings
-LM_STUDIO_API_URL = os.getenv("LM_STUDIO_API_URL", "http://127.0.0.1:1234")
-EMBEDDING_MODEL = "text-embedding-nomic-embed-text-v1.5@q8_0:2"
+LM_STUDIO_API_URL = os.getenv("LM_STUDIO_API_URL", "http://127.0.0.1:1234/v1")
+EMBEDDING_MODEL = os.getenv("LM_STUDIO_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5@q8_0")
+
+# Database connection settings
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = os.getenv("POSTGRES_PORT", "5432")
+DB_NAME = os.getenv("POSTGRES_DB", "bible_db")
+DB_USER = os.getenv("POSTGRES_USER", "postgres")
+DB_PASS = os.getenv("POSTGRES_PASSWORD", "postgres")
 
 def get_db_connection():
-    """Get a database connection with the appropriate configuration."""
-    conn = psycopg.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=os.getenv("POSTGRES_PORT", "5432"),
-        dbname=os.getenv("POSTGRES_DB", "bible_db"),
-        user=os.getenv("POSTGRES_USER", "postgres"),
-        password=os.getenv("POSTGRES_PASSWORD", "postgres"),
-        row_factory=dict_row
-    )
-    return conn
+    """Get a connection to the database with dictionary cursor."""
+    try:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASS,
+            cursor_factory=RealDictCursor
+        )
+        return conn
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        raise
+
+def test_extension_installed():
+    """Test if the vector extension is installed."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+        result = cursor.fetchone()
+        
+        if result:
+            logger.info("Vector extension is installed")
+            return True
+        else:
+            logger.error("Vector extension is NOT installed")
+            return False
+    except Exception as e:
+        logger.error(f"Error checking vector extension: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def test_table_exists():
+    """Test if the verse_embeddings table exists."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'bible' AND table_name = 'verse_embeddings'
+        )
+        """)
+        result = cursor.fetchone()
+        
+        if result and result['exists']:
+            logger.info("verse_embeddings table exists")
+            
+            # Check the count of embeddings
+            cursor.execute("SELECT COUNT(*) FROM bible.verse_embeddings")
+            count = cursor.fetchone()['count']
+            logger.info(f"Found {count} verse embeddings in the database")
+            
+            # Check the available translations
+            cursor.execute("""
+            SELECT translation_source, COUNT(*) as count 
+            FROM bible.verse_embeddings 
+            GROUP BY translation_source
+            ORDER BY translation_source
+            """)
+            translations = cursor.fetchall()
+            
+            if translations:
+                logger.info("Available translations:")
+                for trans in translations:
+                    logger.info(f"  {trans['translation_source']}: {trans['count']} verses")
+            else:
+                logger.warning("No translations found in the database")
+            
+            return count > 0
+        else:
+            logger.error("verse_embeddings table does NOT exist")
+            return False
+    except Exception as e:
+        logger.error(f"Error checking verse_embeddings table: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
 
 def get_embedding(text):
     """
@@ -57,7 +142,7 @@ def get_embedding(text):
     """
     try:
         response = requests.post(
-            f"{LM_STUDIO_API_URL}/v1/embeddings",
+            f"{LM_STUDIO_API_URL}/embeddings",
             headers={"Content-Type": "application/json"},
             json={
                 "model": EMBEDDING_MODEL,
@@ -82,103 +167,227 @@ def get_embedding(text):
         logger.error(f"Error getting embedding from LM Studio: {e}")
         return None
 
-def search_similar_verses(query, translation="KJV", limit=5):
-    """
-    Search for verses similar to the query using vector similarity.
+def test_vector_search():
+    """Test basic vector search functionality."""
+    logger.info("Testing vector search...")
     
-    Args:
-        query: Text query
-        translation: Bible translation to search
-        limit: Number of results to return
-        
-    Returns:
-        List of similar verses
-    """
-    # Get query embedding
-    query_embedding = get_embedding(query)
-    if not query_embedding:
-        logger.error("Failed to generate embedding for query")
-        return None
-    
-    logger.info(f"Generated embedding for query: {query} (length: {len(query_embedding)})")
-    
-    # Search for similar verses
+    # Choose a translation to test
     conn = get_db_connection()
+    cursor = conn.cursor()
+    
     try:
-        with conn.cursor() as cur:
-            # Format the embedding array in PostgreSQL syntax
-            # Convert the Python list directly to a string representation in Postgres array format
-            embedding_array = "["
-            for i, value in enumerate(query_embedding):
-                if i > 0:
-                    embedding_array += ","
-                embedding_array += str(value)
-            embedding_array += "]"
+        # First, let's understand the table structure
+        cursor.execute("""
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_schema = 'bible' AND table_name = 'verse_embeddings'
+        ORDER BY ordinal_position
+        """)
+        columns = cursor.fetchall()
+        logger.info("verse_embeddings table structure:")
+        for col in columns:
+            logger.info(f"  {col['column_name']} ({col['data_type']})")
+        
+        # Get available translation with the most embeddings
+        cursor.execute("""
+        SELECT translation_source, COUNT(*) as count 
+        FROM bible.verse_embeddings 
+        GROUP BY translation_source 
+        ORDER BY count DESC
+        LIMIT 1
+        """)
+        
+        result = cursor.fetchone()
+        if not result:
+            logger.error("No translations found with embeddings")
+            return False
+        
+        translation = result['translation_source']
+        logger.info(f"Using translation: {translation} for testing")
+        
+        # Test query
+        test_query = "The beginning of creation"
+        
+        # Get embedding for the query
+        embedding = get_embedding(test_query)
+        if not embedding:
+            logger.error("Failed to get embedding for test query")
+            return False
+        
+        # Convert embedding to string format for PostgreSQL
+        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+        
+        # Perform search
+        search_query = """
+        SELECT e.verse_id, e.book_name, e.chapter_num, e.verse_num, 
+               v.verse_text, e.translation_source,
+               1 - (e.embedding <=> %s::vector) as similarity
+        FROM bible.verse_embeddings e
+        JOIN bible.verses v ON e.verse_id = v.id
+        WHERE e.translation_source = %s
+        ORDER BY e.embedding <=> %s::vector
+        LIMIT 5
+        """
+        
+        cursor.execute(search_query, (embedding_str, translation, embedding_str))
+        results = cursor.fetchall()
+        
+        if results:
+            logger.info(f"Vector search successful for query: '{test_query}'")
+            logger.info("Top results:")
             
-            # Run the query with properly formatted vector
-            cur.execute(
-                """
-                SELECT 
-                    v.book_name, 
-                    v.chapter_num, 
-                    v.verse_num, 
-                    v.verse_text,
-                    v.translation_source,
-                    1 - (e.embedding <=> %s::vector) AS similarity
-                FROM 
-                    bible.verse_embeddings e
-                    JOIN bible.verses v ON e.verse_id = v.id
-                WHERE 
-                    v.translation_source = %s
-                ORDER BY 
-                    e.embedding <=> %s::vector
-                LIMIT %s
-                """,
-                (embedding_array, translation, embedding_array, limit)
-            )
-            results = cur.fetchall()
+            for i, result in enumerate(results):
+                logger.info(f"{i+1}. {result['book_name']} {result['chapter_num']}:{result['verse_num']} - "
+                           f"Similarity: {float(result['similarity']):.4f}")
+                logger.info(f"   Text: {result['verse_text']}")
             
-            # Format results for display
-            formatted_results = []
-            for r in results:
-                formatted_results.append({
-                    'reference': f"{r['book_name']} {r['chapter_num']}:{r['verse_num']}",
-                    'text': r['verse_text'],
-                    'translation': r['translation_source'],
-                    'similarity': round(float(r['similarity']) * 100, 2)
-                })
-                
-            return formatted_results
+            return True
+        else:
+            logger.error("No results returned from vector search")
+            return False
+    
     except Exception as e:
-        logger.error(f"Error searching similar verses: {e}")
-        return None
+        logger.error(f"Error in vector search test: {e}")
+        return False
+    
     finally:
+        cursor.close()
+        conn.close()
+
+def test_verse_similarity():
+    """Test verse similarity functionality."""
+    logger.info("Testing verse similarity...")
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Debug the issue by checking what translations are available
+        cursor.execute("""
+        SELECT translation_source, COUNT(*) as count 
+        FROM bible.verse_embeddings 
+        GROUP BY translation_source 
+        ORDER BY count DESC
+        LIMIT 1
+        """)
+        
+        translation_result = cursor.fetchone()
+        if not translation_result:
+            logger.error("No translations found with embeddings")
+            return False
+        
+        translation = translation_result['translation_source']
+        logger.info(f"Using translation: {translation} for similarity test")
+        
+        # Get the first verse in the database that has embeddings
+        cursor.execute("""
+        SELECT e.verse_id, e.embedding, e.book_name, e.chapter_num, e.verse_num, v.verse_text
+        FROM bible.verse_embeddings e
+        JOIN bible.verses v ON e.verse_id = v.id
+        WHERE e.translation_source = %s
+        ORDER BY e.id
+        LIMIT 1
+        """, (translation,))
+        
+        verse_result = cursor.fetchone()
+        if not verse_result:
+            logger.error("No verses found with embeddings")
+            return False
+        
+        logger.info(f"Testing similarity to: {verse_result['book_name']} {verse_result['chapter_num']}:{verse_result['verse_num']}")
+        logger.info(f"Verse text: {verse_result['verse_text']}")
+        
+        # Search for similar verses using that verse's embedding
+        search_query = """
+        SELECT e.verse_id, e.book_name, e.chapter_num, e.verse_num, 
+               v.verse_text, e.translation_source,
+               1 - (e.embedding <=> %s) as similarity
+        FROM bible.verse_embeddings e
+        JOIN bible.verses v ON e.verse_id = v.id
+        WHERE e.translation_source = %s
+        AND e.verse_id != %s
+        ORDER BY e.embedding <=> %s
+        LIMIT 5
+        """
+        
+        cursor.execute(search_query, (
+            verse_result['embedding'], 
+            translation,
+            verse_result['verse_id'],
+            verse_result['embedding']
+        ))
+        
+        similar_verses = cursor.fetchall()
+        
+        if similar_verses:
+            logger.info(f"Verse similarity search successful")
+            logger.info("Most similar verses:")
+            
+            for i, result in enumerate(similar_verses):
+                logger.info(f"{i+1}. {result['book_name']} {result['chapter_num']}:{result['verse_num']} - "
+                           f"Similarity: {float(result['similarity']):.4f}")
+                logger.info(f"   Text: {result['verse_text']}")
+            
+            return True
+        else:
+            logger.error("No similar verses found")
+            return False
+    
+    except Exception as e:
+        logger.error(f"Error in verse similarity test: {e}")
+        logger.exception("Detailed traceback")
+        return False
+    
+    finally:
+        cursor.close()
         conn.close()
 
 def main():
-    """Main entry point."""
-    try:
-        # Test queries
-        queries = [
-            "God created the heavens and the earth",
-            "Love your neighbor as yourself",
-            "The wages of sin is death"
-        ]
-        
-        # Search for similar verses
-        for query in queries:
-            logger.info(f"\nSearching for verses similar to: '{query}'")
-            results = search_similar_verses(query)
-            
-            if results:
-                logger.info(f"Found {len(results)} similar verses:")
-                for i, result in enumerate(results):
-                    logger.info(f"{i+1}. {result['reference']} ({result['similarity']}% similarity)")
-                    logger.info(f"   {result['text']}")
-            else:
-                logger.info("No results found")
-    except Exception as e:
-        logger.error(f"Error in main function: {e}")
+    """Run all tests."""
+    logger.info("Starting vector search tests")
+    
+    # Track test results
+    tests_passed = 0
+    tests_failed = 0
+    
+    # Test if extension is installed
+    if test_extension_installed():
+        tests_passed += 1
+    else:
+        tests_failed += 1
+        logger.error("Vector extension test failed, aborting further tests")
+        return False
+    
+    # Test if table exists
+    if test_table_exists():
+        tests_passed += 1
+    else:
+        tests_failed += 1
+        logger.warning("Table test failed, but continuing with other tests")
+    
+    # Test vector search
+    if test_vector_search():
+        tests_passed += 1
+    else:
+        tests_failed += 1
+        logger.warning("Vector search test failed, but continuing with other tests")
+    
+    # Test verse similarity
+    if test_verse_similarity():
+        tests_passed += 1
+    else:
+        tests_failed += 1
+    
+    # Summary
+    logger.info(f"Tests completed: {tests_passed} passed, {tests_failed} failed")
+    
+    if tests_failed == 0:
+        logger.info("All vector search tests passed successfully!")
+        return True
+    else:
+        logger.warning(f"{tests_failed} tests failed")
+        return False
 
 if __name__ == "__main__":
-    main() 
+    successful = main()
+    sys.exit(0 if successful else 1) 

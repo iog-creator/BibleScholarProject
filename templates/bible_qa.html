@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bible Q&A</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <h1>Bible Question & Answer</h1>
+    <div class="container">
+        <form id="qaForm">
+            <label for="question">Your Bible Question:</label>
+            <textarea id="question" name="question" required placeholder="E.g., What does Genesis 1:1 say?"></textarea>
+            
+            <label for="context">Context (Optional):</label>
+            <textarea id="context" name="context" placeholder="Optional: Add Bible verses or relevant context"></textarea>
+            
+            <button type="submit">Ask Question</button>
+        </form>
+        
+        <div class="loader" id="loader"></div>
+        
+        <div id="result">
+            <h3>Answer:</h3>
+            <p id="answer"></p>
+            <p id="model-info" style="font-size: 0.8em; color: #777;"></p>
+        </div>
+    </div>
+    
+    <p class="version-info">Bible QA API v1.0.0 | <a href="/docs" target="_blank">API Documentation</a></p>
+
+    <!-- Load external JavaScript -->
+    <script src="/static/js/bible_qa.js"></script>
+</body>
+</html> 

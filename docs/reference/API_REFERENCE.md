@@ -8,6 +8,7 @@ This document provides a comprehensive reference for all API endpoints in the Bi
 - Lexicon API: `http://localhost:5000`
 - Web App: `http://localhost:5001`
 - Vector Search Demo: `http://localhost:5050`
+- Bible QA API: `http://localhost:8000`
 
 ## Health Endpoints
 
@@ -500,10 +501,230 @@ Returns information about Bible translations.
 
 ### DSPy API
 
+The DSPy API provides endpoints for Bible question answering with enhanced DSPy 2.6 features including multi-turn conversation history.
+
+### Base URL
+
 ```
+/api/dspy
+```
+
+### Health Check
+
+```http
+GET /api/dspy/health
+```
+
+Returns the status of the DSPy API and model.
+
+**Response**
+
+```json
+{
+  "status": "ok",
+  "message": "DSPy API is running with model loaded",
+  "version": "2.0.0",
+  "dspy_version": "2.6.23"
+}
+```
+
+### Ask a Question
+
+```http
+POST /api/dspy/ask
+Content-Type: application/json
+```
+
+Ask a question without providing specific Bible context.
+
+**Request Body**
+
+```json
+{
+  "question": "Who was Moses?",
+  "session_id": "optional-session-id-for-conversation-history"
+}
+```
+
+**Response**
+
+```json
+{
+  "question": "Who was Moses?",
+  "answer": "Moses was a prophet and leader in the Old Testament who led the Israelites out of slavery in Egypt. He is known for receiving the Ten Commandments from God on Mount Sinai and for writing the first five books of the Bible, known as the Pentateuch or Torah.",
+  "session_id": "user-123",
+  "history_length": 1
+}
+```
+
+### Ask with Context
+
+```http
 POST /api/dspy/ask_with_context
+Content-Type: application/json
 ```
-Uses DSPy to answer questions with contextual information.
+
+Ask a question with specific Bible context.
+
+**Request Body**
+
+```json
+{
+  "question": "What did Moses do?",
+  "context": "Moses led the Israelites out of Egypt across the Red Sea.",
+  "session_id": "optional-session-id-for-conversation-history"
+}
+```
+
+**Response**
+
+```json
+{
+  "question": "What did Moses do?",
+  "answer": "According to the context, Moses led the Israelites out of Egypt across the Red Sea.",
+  "context": "Moses led the Israelites out of Egypt across the Red Sea.",
+  "session_id": "user-123",
+  "history_length": 2
+}
+```
+
+### Get Conversation History
+
+```http
+GET /api/dspy/conversation?session_id=user-123
+```
+
+Get the conversation history for a session.
+
+**Response**
+
+```json
+{
+  "session_id": "user-123",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Who was Moses?",
+      "turn": 1
+    },
+    {
+      "role": "assistant",
+      "content": "Moses was a prophet and leader in the Old Testament who led the Israelites out of slavery in Egypt. He is known for receiving the Ten Commandments from God on Mount Sinai and for writing the first five books of the Bible, known as the Pentateuch or Torah.",
+      "turn": 2
+    },
+    {
+      "role": "user",
+      "content": "What did Moses do?",
+      "turn": 3
+    },
+    {
+      "role": "assistant",
+      "content": "According to the context, Moses led the Israelites out of Egypt across the Red Sea.",
+      "turn": 4
+    }
+  ],
+  "turns": 2
+}
+```
+
+### Clear Conversation History
+
+```http
+DELETE /api/dspy/conversation?session_id=user-123
+```
+
+Clear the conversation history for a session.
+
+**Response**
+
+```json
+{
+  "status": "ok",
+  "message": "Conversation history cleared for session user-123"
+}
+```
+
+### Bible QA API
+
+```
+POST /api/question
+```
+Answers Bible questions using the trained DSPy model, optionally using Claude API when configured.
+
+**Request:**
+```json
+{
+  "question": "Who created the heavens and the earth?",
+  "context": "In the beginning God created the heaven and the earth.",
+  "model_version": "latest"
+}
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| question | string | (required) | The Bible question to answer |
+| context | string | "" | Optional biblical context to improve answer |
+| model_version | string | "latest" | Version of the model to use |
+
+**Response:**
+```json
+{
+  "answer": "God created the heavens and the earth.",
+  "model_info": {
+    "model_type": "T5 Bible QA",
+    "model_path": "models/dspy/bible_qa_t5/bible_qa_t5_latest"
+  },
+  "status": "success"
+}
+```
+
+```
+GET /api/models
+```
+Lists available models in the registry.
+
+**Response:**
+```json
+{
+  "available_models": [
+    {
+      "version_id": "mlflow_12345678_20250507_120000",
+      "run_id": "12345678abcdef1234567890",
+      "creation_time": "20250507_120000",
+      "model_type": "bible_qa_t5",
+      "description": "T5 model trained with Claude teacher",
+      "is_production": true
+    }
+  ],
+  "current_production": "mlflow_12345678_20250507_120000",
+  "latest": "mlflow_12345678_20250507_120000"
+}
+```
+
+```
+POST /api/models/register
+```
+Registers a model from MLflow into the model registry.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| run_id | string | (required) | MLflow run ID for the model |
+| description | string | null | Description of this model version |
+
+```
+POST /api/models/{version_id}/promote
+```
+Promotes a model version to production.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| version_id | string | (required) | ID of the model version to promote |
 
 ### Advanced Vector Search
 

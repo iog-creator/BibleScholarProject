@@ -1,3 +1,15 @@
+---
+title: Theological Terms Reference
+description: Documentation of critical theological terms, Strong's ID mappings, and validation requirements in the BibleScholarProject.
+last_updated: 2024-06-10
+related_docs:
+  - ../../data/README.md
+  - ../../scripts/README.md
+  - ../../tests/README.md
+  - ./etl_pipeline.md
+  - ../guides/data_verification.md
+  - ../../.cursor/rules/theological_terms.mdc
+---
 # Theological Terms
 
 This document provides comprehensive documentation for the theological terms handling in the BibleScholarProject, focusing on critical Hebrew theological terms and their proper Strong's ID mappings.
@@ -269,4 +281,12 @@ The web interface provides the following views for theological terms:
 | 2025-05-05 | Updated with current term counts from database verification | BibleScholar Team |
 | 2025-04-15 | Added API and web interface integration details | BibleScholar Team |
 | 2025-03-10 | Added pattern for properly handling extended Strong's IDs | BibleScholar Team |
-| 2025-02-20 | Initial version created | BibleScholar Team | 
+| 2025-02-20 | Initial version created | BibleScholar Team |
+
+## Cross-References
+- [ETL Pipeline](./etl_pipeline.md)
+- [Data Verification Guide](../guides/data_verification.md)
+- [Data Directory](../../data/README.md)
+- [Scripts Directory](../../scripts/README.md)
+- [Test Suite](../../tests/README.md)
+- [Theological Terms Rule](../../.cursor/rules/theological_terms.mdc) 

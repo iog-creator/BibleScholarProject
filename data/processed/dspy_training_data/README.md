@@ -1,6 +1,41 @@
 # DSPy Training Data
 
-This directory contains training data for DSPy models. The data is used to train documentation organizers, QA systems, and semantic search components.
+This directory contains training data for DSPy language models used in the BibleScholarProject.
+
+## Datasets
+
+- `qa_dataset.jsonl` - Question-answering pairs for Bible verses and theological concepts
+- `theological_terms_dataset.jsonl` - Examples featuring Hebrew theological terms like Elohim, YHWH, etc.
+- `translation_dataset.jsonl` - Translation comparison examples
+- `summarization_dataset.jsonl` - Bible passage summarization examples
+- `web_interaction_dataset.jsonl` - API usage examples
+- `user_interactions_dataset.jsonl` - Real user interactions with the system
+
+## Generation and Management
+
+This data is managed by the DSPy data collection system:
+
+1. **Check status**: `make dspy-status`
+2. **Refresh all data**: `make dspy-refresh`
+3. **Generate specific datasets**: `make dspy-collect`
+4. **Enhance with specialized examples**: `make dspy-enhance`
+
+## Directory Structure
+
+- `bible_corpus/` - Core Bible corpus and extraction data
+- `dspy/` - DSPy-specific formatted data
+- `.state.json` - Current database state hash and metadata
+
+## Format
+
+All datasets use the JSONL format, with one example per line. Each example includes:
+- Input fields (like question, context)
+- Output fields (like answer)
+- Metadata (like references, theological notes)
+
+## For Developers
+
+When making changes to the database that affect Bible verses or theological terms, use `scripts/refresh_dspy_data.py refresh` to regenerate training data.
 
 ## Available Datasets
 
@@ -8,13 +43,6 @@ This directory contains training data for DSPy models. The data is used to train
 |---------|-------------|----------|--------|
 | `documentation_organization_dataset.jsonl` | Examples of documentation organization problems and solutions | 5 | `{"input": "problem", "output": "solution"}` |
 | `documentation_organization_formatted.jsonl` | Formatted data for the documentation organizer | 5 | Custom DSPy format |
-| `qa_dataset.jsonl` | Question-answer pairs about Bible verses | 104 | `{"context": "verse", "question": "q", "answer": "a"}` |
-| `summarization_dataset.jsonl` | Bible passage summarization examples | 3 | `{"passage": "text", "summary": "summary"}` |
-| `theological_terms_dataset.jsonl` | Theological term analysis | 100 | `{"term": {}, "analysis": {}}` |
-| `translation_dataset.jsonl` | Cross-language translation examples | 19 | `{"source": "text", "target": "translation"}` |
-| `ner_dataset.jsonl` | Named entity recognition examples | 89 | `{"text": "passage", "entities": []}` |
-| `user_interactions_dataset.jsonl` | User interaction examples | 10 | `{"query": "q", "response": "r"}` |
-| `web_interaction_dataset.jsonl` | Web UI interaction examples | 22 | `{"interaction": "type", "data": {}}` |
 | `tvtms_parsing_examples.jsonl` | TVTMS parser examples | 6 | `{"input": "raw", "output": "parsed"}` |
 | `evaluation_metrics.jsonl` | DSPy evaluation metrics | 7 | `{"metric_name": "name", "implementation": "code"}` |
 

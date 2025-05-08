@@ -1,3 +1,15 @@
+---
+title: Documentation Index
+description: Main index and entry point for all documentation in the BibleScholarProject.
+last_updated: 2025-05-08
+related_docs:
+  - ./guides/system_build_guide.md
+  - ./features/etl_pipeline.md
+  - ./reference/DATABASE_SCHEMA.md
+  - ./reference/organization_reference.md
+  - ./guides/testing_framework.md
+  - ./guides/data_verification.md
+---
 # BibleScholarProject Documentation
 
 Welcome to the BibleScholarProject documentation. This repository contains comprehensive documentation for all aspects of the project.
@@ -68,6 +80,7 @@ The project uses Cursor AI assistance with specialized rules. See the [rule crea
   - [`HUGGINGFACE_DSPY_INTEGRATION.md`](features/HUGGINGFACE_DSPY_INTEGRATION.md) - HuggingFace integration with DSPy
   - [`MLFLOW_DSPY_INTEGRATION.md`](features/MLFLOW_DSPY_INTEGRATION.md) - MLflow experiment tracking with DSPy
   - [`etl_rules.md`](features/etl_rules.md) - Standards for ETL processes
+  - [`dataset_validation_expansion.md`](features/dataset_validation_expansion.md) - Expanding validation datasets for model testing
 
 - [`guides/`](guides/) - How-to guides and tutorials
   - [`claude_api_setup.md`](guides/claude_api_setup.md) - Setting up Claude API integration
@@ -117,3 +130,11 @@ The BibleScholarProject follows strict documentation standards:
 5. **Version Control** - Documentation is versioned with the codebase
 
 For more details, see the [Documentation Maintenance Guide](guides/documentation_maintenance.md).
+
+## Cross-References
+- [System Build Guide](./guides/system_build_guide.md)
+- [ETL Pipeline](./features/etl_pipeline.md)
+- [Database Schema](./reference/DATABASE_SCHEMA.md)
+- [Organization Reference](./reference/organization_reference.md)
+- [Testing Framework Guide](./guides/testing_framework.md)
+- [Data Verification Guide](./guides/data_verification.md)

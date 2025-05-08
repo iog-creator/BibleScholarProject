@@ -1,3 +1,14 @@
+---
+title: ETL Pipeline Documentation
+description: Comprehensive documentation for the Extract, Transform, Load (ETL) pipeline in the BibleScholarProject.
+last_updated: 2024-06-10
+related_docs:
+  - ../../data/README.md
+  - ../../scripts/README.md
+  - ../../tests/README.md
+  - ./bible_translations.md
+  - ../../.cursor/rules/etl_rules.mdc
+---
 # ETL Pipeline
 
 This document provides comprehensive information about the Extract, Transform, Load (ETL) pipeline in the BibleScholarProject.

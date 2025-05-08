@@ -1,3 +1,15 @@
+---
+title: Database Schema Reference
+description: Database schema, table structure, and access rules for the BibleScholarProject.
+last_updated: 2024-06-10
+related_docs:
+  - ../../data/README.md
+  - ../../scripts/README.md
+  - ../../tests/README.md
+  - ../features/etl_pipeline.md
+  - ../features/theological_terms.md
+  - ../../.cursor/rules/database_access.mdc
+---
 # BibleScholarProject Database Schema
 
 This document outlines the database schema used in the BibleScholarProject. All tables are stored in the PostgreSQL database under the `bible_db` database.
@@ -254,4 +266,12 @@ LIMIT 10;
 | Date | Change | Author |
 |------|--------|--------|
 | 2025-05-06 | Added vector search tables and reorganized documentation | BibleScholar Team |
-| 2025-05-01 | Initial schema documentation | BibleScholar Team | 
+| 2025-05-01 | Initial schema documentation | BibleScholar Team |
+
+## Cross-References
+- [ETL Pipeline](../features/etl_pipeline.md)
+- [Theological Terms](../features/theological_terms.md)
+- [Data Directory](../../data/README.md)
+- [Scripts Directory](../../scripts/README.md)
+- [Test Suite](../../tests/README.md)
+- [Database Access Rule](../../.cursor/rules/database_access.mdc) 

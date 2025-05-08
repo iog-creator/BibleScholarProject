@@ -30,6 +30,9 @@ from src.api.vector_search_api import vector_search_api
 # Import comprehensive search API
 from src.api.comprehensive_search import comprehensive_search_api
 
+# Import DSPy API
+from src.api.dspy_api import api_blueprint as dspy_api
+
 # Load environment variables
 load_dotenv()
 
@@ -63,9 +66,16 @@ app.register_blueprint(vector_search_api, url_prefix='/api')
 # Register the comprehensive search API
 app.register_blueprint(comprehensive_search_api, url_prefix='/api/comprehensive')
 
+# Register the DSPy API
+app.register_blueprint(dspy_api, url_prefix='/api/dspy')
+
 # API Base URL - use local host if running on same server
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:5000')
 logger.info(f"Using API Base URL: {API_BASE_URL}")
+
+# DSPy API Base URL - points to the standalone DSPy server
+DSPY_API_URL = os.getenv('DSPY_API_URL', 'http://localhost:5003')
+logger.info(f"Using DSPy API URL: {DSPY_API_URL}")
 
 # Check if the API endpoint is accessible
 # For Flask 2.x, use before_request with a function that runs once
@@ -170,15 +180,27 @@ def get_abbreviated_book_name(book):
 def get_db_connection():
     """
     Get a connection to the PostgreSQL database.
+    Tries to use secure connection if available, otherwise falls back to standard connection.
     Returns None if connection fails.
     """
     try:
+        # First try to use secure connection with read-only mode
+        try:
+            from src.database.secure_connection import get_secure_connection
+            logger.info("Using secure READ-ONLY database connection")
+            return get_secure_connection(mode='read')
+        except ImportError:
+            # Secure connection module not available, use regular connection
+            pass
+        
+        # Fall back to standard connection
         conn = psycopg2.connect(
             host=os.getenv('DB_HOST', 'localhost'),
             database=os.getenv('DB_NAME', 'bible_db'),
             user=os.getenv('DB_USER', 'postgres'),
             password=os.getenv('DB_PASSWORD', 'postgres')
         )
+        logger.info("Using standard database connection")
         return conn
     except Exception as e:
         logger.error(f"Database connection error: {e}")
@@ -1147,23 +1169,44 @@ def vector_search_page():
     
     if query:
         try:
+            # Make the API request to get semantic search results
             response = requests.get(f"{API_BASE_URL}/api/vector-search",
                                   params={'q': query, 'translation': translation, 'limit': 20})
             
             if response.status_code == 200:
                 results = response.json()
+                
+                # Log successful semantic search for analytics
+                log_web_interaction(
+                    route='/vector-search',
+                    query_params={'q': query, 'translation': translation},
+                    response_type='success',
+                    response_data=f"Found {results.get('total_matches', 0)} results"
+                )
             else:
                 error = response.json().get('error', 'Unknown error')
+                logger.error(f"Vector search API error: {error}")
                 
         except Exception as e:
             logger.error(f"Error in vector search: {e}")
             error = f"An error occurred: {str(e)}"
     
+    # Get available translations for the dropdown
+    try:
+        trans_response = requests.get(f"{API_BASE_URL}/api/available-translations")
+        available_translations = []
+        if trans_response.status_code == 200:
+            available_translations = [t['translation_source'] for t in trans_response.json().get('translations', [])]
+    except Exception:
+        # Default translations if we can't get the list
+        available_translations = ['KJV', 'ASV']
+    
     return render_template('vector_search.html',
                           query=query,
                           translation=translation,
                           results=results,
-                          error=error)
+                          error=error,
+                          available_translations=available_translations)
 
 @app.route('/similar-verses')
 def similar_verses_page():
@@ -1180,18 +1223,38 @@ def similar_verses_page():
     
     if book and chapter and verse:
         try:
+            # Make API request to similar-verses endpoint
             response = requests.get(f"{API_BASE_URL}/api/similar-verses",
                                    params={'book': book, 'chapter': chapter, 'verse': verse, 
                                            'translation': translation, 'limit': 20})
             
             if response.status_code == 200:
                 results = response.json()
+                
+                # Log successful similar verses search
+                log_web_interaction(
+                    route='/similar-verses',
+                    query_params={'book': book, 'chapter': chapter, 'verse': verse, 'translation': translation},
+                    response_type='success',
+                    response_data=f"Found {results.get('total_matches', 0)} similar verses"
+                )
             else:
                 error = response.json().get('error', 'Unknown error')
+                logger.error(f"Similar verses API error: {error}")
                 
         except Exception as e:
             logger.error(f"Error finding similar verses: {e}")
             error = f"An error occurred: {str(e)}"
+    
+    # Get available translations for the dropdown
+    try:
+        trans_response = requests.get(f"{API_BASE_URL}/api/available-translations")
+        available_translations = []
+        if trans_response.status_code == 200:
+            available_translations = [t['translation_source'] for t in trans_response.json().get('translations', [])]
+    except Exception:
+        # Default translations if we can't get the list
+        available_translations = ['KJV', 'ASV']
     
     return render_template('similar_verses.html',
                           book=book,
@@ -1199,7 +1262,54 @@ def similar_verses_page():
                           verse=verse,
                           translation=translation,
                           results=results,
-                          error=error)
+                          error=error,
+                          available_translations=available_translations)
+
+@app.route('/dspy-ask', methods=['GET', 'POST'])
+def dspy_ask():
+    """
+    Route for the DSPy model training and testing interface.
+    """
+    # Default values for the form
+    context = request.form.get('context', '')
+    question = request.form.get('question', '')
+    result = None
+
+    if request.method == 'POST':
+        # If we're testing a model
+        if 'context' in request.form and 'question' in request.form:
+            # Prepare data for API call
+            data = {
+                'context': request.form['context'],
+                'question': request.form['question']
+            }
+            
+            try:
+                # Make API call to test the model - use DSPY_API_URL
+                response = requests.post(
+                    f"{DSPY_API_URL}/api/dspy/example",
+                    json=data,
+                    timeout=30  # Longer timeout for model inference
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    # Log the successful interaction
+                    log_web_interaction(
+                        route='/dspy-ask',
+                        parameters=str(data),
+                        response_status=response.status_code,
+                        response_data=str(result)
+                    )
+                else:
+                    logger.error(f"DSPy API error: {response.status_code} - {response.text}")
+                    flash(f"Error: {response.json().get('error', 'Unknown error')}", "danger")
+            except Exception as e:
+                logger.error(f"DSPy request error: {str(e)}")
+                flash(f"Error: {str(e)}", "danger")
+    
+    return render_template('dspy_ask.html', context=context, question=question, result=result)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001) 

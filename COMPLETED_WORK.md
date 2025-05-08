@@ -1123,4 +1123,36 @@ The architecture we've implemented is modular and extensible, allowing for easy 
 - Morphology code count test now allows a ±1% margin.
 - All changes are reflected in the integration test suite and test fixtures.
 
-- Added a data source fallback rule: If versification mapping or TVTMS source files are missing in the main data directory, the ETL and integration tests will automatically use files from the secondary data source (STEPBible-Datav2 repo). This is now a formal rule and is documented in the rules and README. 
+- Added a data source fallback rule: If versification mapping or TVTMS source files are missing in the main data directory, the ETL and integration tests will automatically use files from the secondary data source (STEPBible-Datav2 repo). This is now a formal rule and is documented in the rules and README.
+
+## DSPy 2.6 BetterTogether Integration - May 2025
+
+Successfully implemented the BetterTogether optimizer from DSPy 2.6 with LM Studio compatibility. The implementation addresses several integration challenges:
+
+1. **JSON Parsing Issues Fixed**:
+   - Created `dspy_json_patch.py` to handle string responses from LM Studio
+   - Patched DSPy's JSON parsing to extract structured data from text
+   - Added support for ChainOfThought format with reasoning/answer detection
+
+2. **Parameter Compatibility**:
+   - Identified and removed unsupported parameters in DSPy 2.6
+   - Created a simplified API that works reliably with LM Studio
+   - Implemented proper error handling with fallbacks
+
+3. **Documentation and Guidelines**:
+   - Created `README_DSPY_BETTER_TOGETHER.md` with detailed implementation guidelines
+   - Updated existing `README_DSPY_OPTIMIZATION.md` with compatibility notes
+   - Added a cursor rule `better_together_dspy26.mdc` for future code guidance
+
+4. **Testing Framework**:
+   - Implemented minimalist test example in `test_optimized_bible_qa.py`
+   - Created robust batch file with proper MLflow server management
+   - Added extensive logging for troubleshooting
+
+The implementation successfully optimizes Bible QA models, with proper MLflow integration for tracking experiments. Our patch enables the use of DSPy 2.6's BetterTogether optimizer with LM Studio by addressing incompatibility issues in the JSON response handling.
+
+## Next Steps
+
+1. Extend the implementation to support other DSPy optimizers like InferRules
+2. Create a comprehensive benchmarking suite for different optimizers
+3. Integrate optimized models with the web API endpoints 

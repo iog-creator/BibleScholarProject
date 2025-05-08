@@ -1,3 +1,14 @@
+---
+title: Testing Framework Guide
+description: Guide to the testing framework, standards, and patterns for the BibleScholarProject.
+last_updated: 2024-06-10
+related_docs:
+  - ../../tests/README.md
+  - ../../scripts/README.md
+  - ../../data/README.md
+  - ./data_verification.md
+  - ../../.cursor/rules/db_test_skip.mdc
+---
 # Testing Framework
 
 > Note: This file was relocated from `docs\TESTING_FRAMEWORK.md` as part of the documentation reorganization.

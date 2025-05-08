@@ -24,11 +24,13 @@ import requests
 import re
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 
 import dspy
 import mlflow
 from dotenv import load_dotenv
+from dspy.teleprompt import BootstrapFewShot
+from dspy.evaluate import Evaluate
 
 # Configure logging
 logging.basicConfig(
@@ -75,6 +77,26 @@ try:
 except ImportError as e:
     logger.warning(f"Could not import huggingface_integration: {e}")
     HUGGINGFACE_INTEGRATION_AVAILABLE = False
+
+# Add directory to path for relative imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import database utilities, etc.
+from src.utils.logging_utils import setup_logger
+from src.dspy_programs.bible_qa import BibleQA
+
+# Setup logging
+logger = setup_logger("DSPyTraining", "logs/dspy_training.log")
+
+# Define paths
+BASE_DIR = Path(os.getcwd())
+DATA_DIR = BASE_DIR / "data"
+PROCESSED_DIR = DATA_DIR / "processed" / "dspy_training_data"
+MODELS_DIR = BASE_DIR / "models" / "dspy" / "bible_qa_compiled"
+INTEGRATED_DATA_DIR = PROCESSED_DIR / "bible_corpus" / "integrated"
+
+# Create directories if they don't exist
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 def parse_args():
     """Parse command-line arguments."""
@@ -133,6 +155,11 @@ def parse_args():
         default=0.8,
         help="Percentage of data to use for training"
     )
+    parser.add_argument(
+        "--use-integrated-data",
+        action="store_true",
+        help="Use integrated dataset from data/processed/dspy_training_data/bible_corpus/integrated"
+    )
     
     # Optimizer configuration
     parser.add_argument(
@@ -173,8 +200,35 @@ def parse_args():
     
     return parser.parse_args()
 
-def load_data(data_dir: str, train_pct: float = 0.8):
+def load_data(data_dir: str, train_pct: float = 0.8, args=None):
     """Load training data from JSONL files with conversation history support."""
+    # Check for integrated data if requested
+    if args and args.use_integrated_data:
+        integrated_dir = Path("data/processed/dspy_training_data/bible_corpus/integrated")
+        train_path = integrated_dir / "qa_dataset_train.jsonl"
+        val_path = integrated_dir / "qa_dataset_val.jsonl"
+        
+        if train_path.exists() and val_path.exists():
+            logger.info(f"Loading integrated dataset from {train_path} and {val_path}")
+            
+            train_data = []
+            with open(train_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('//'):
+                        train_data.append(json.loads(line))
+            
+            val_data = []
+            with open(val_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('//'):
+                        val_data.append(json.loads(line))
+            
+            logger.info(f"Loaded {len(train_data)} training examples and {len(val_data)} validation examples from integrated dataset")
+            return train_data, val_data
+    
+    # Original data loading logic
     train_path = Path(data_dir) / "qa_dataset_train.jsonl"
     val_path = Path(data_dir) / "qa_dataset_val.jsonl"
     
@@ -226,37 +280,14 @@ def load_data(data_dir: str, train_pct: float = 0.8):
         random.seed(42)
         random.shuffle(all_data)
         
+        # Split according to train_pct
         split_idx = int(len(all_data) * train_pct)
         train_data = all_data[:split_idx]
         val_data = all_data[split_idx:]
         
-        logger.info(f"Split {len(all_data)} examples into {len(train_data)} training and {len(val_data)} validation examples")
+        logger.info(f"Created split with {len(train_data)} training examples and {len(val_data)} validation examples")
     
-    # Add empty history field if not present
-    for item in train_data:
-        if "history" not in item:
-            item["history"] = []
-    
-    for item in val_data:
-        if "history" not in item:
-            item["history"] = []
-    
-    # Convert to DSPy examples with properly set inputs
-    train_examples = []
-    for example in train_data:
-        dspy_example = dspy.Example(**example)
-        # Explicitly set input fields based on the signature
-        dspy_example = dspy_example.with_inputs("context", "question", "history")
-        train_examples.append(dspy_example)
-    
-    val_examples = []
-    for example in val_data:
-        dspy_example = dspy.Example(**example)
-        # Explicitly set input fields based on the signature
-        dspy_example = dspy_example.with_inputs("context", "question", "history")
-        val_examples.append(dspy_example)
-    
-    return train_examples, val_examples
+    return train_data, val_data
 
 def configure_dspy(args):
     """Configure DSPy with the appropriate language model."""
@@ -962,22 +993,22 @@ def evaluate_answers(result_answer, expected_answer):
     return match_score >= 0.45  # Lower the threshold to 45%
 
 def main():
-    """Main function to train the model."""
+    """Main function to train a Bible QA model with DSPy and MLflow."""
+    # Parse command-line arguments
     args = parse_args()
     
-    # Set up MLflow experiment
-    mlflow.set_experiment("dspy_bible_qa")
-    logger.info(f"Set MLflow experiment to: dspy_bible_qa")
+    # Configure DSPy
+    configure_dspy(args)
     
     # Create run name if not provided
     if not args.run_name:
         args.run_name = create_run_name(args)
     
-    # Create save directory
-    os.makedirs(args.save_dir, exist_ok=True)
+    # Create or get MLflow experiment
+    mlflow.set_experiment(args.experiment_name)
     
     # Start MLflow run
-    with mlflow.start_run(run_name=args.run_name):
+    with mlflow.start_run(run_name=args.run_name) as run:
         # Log parameters
         mlflow.log_params({
             "model": args.model,
@@ -985,185 +1016,112 @@ def main():
             "max_demos": args.max_demos,
             "train_pct": args.train_pct,
             "data_dir": args.data_dir,
-            "lm_studio": args.lm_studio,
-            "lm_studio_model": args.lm_studio_model,
-            "quantization": args.quantization,
-            "model_format": args.model_format
+            "use_integrated_data": args.use_integrated_data,
+            "lm_studio": args.lm_studio
         })
         
-        # For LM Studio, test the API directly first
-        if args.lm_studio:
-            lm_studio_api = os.getenv("LM_STUDIO_API_URL", "http://localhost:1234/v1")
-            
-            # Get the model name from command line args, environment, or use default
-            if args.lm_studio_model:
-                # Use the model specified in command line
-                lm_studio_model = args.lm_studio_model
-            else:
-                # Get from environment or use default Mistral model
-                lm_studio_model = os.getenv("LM_STUDIO_CHAT_MODEL", "mistral-nemo-instruct-2407")
-            
-            # Check if the model name contains the LM Studio specific format
-            if not any(x in lm_studio_model for x in ["@q4", "@q6", "@q8"]):
-                # Add the quantization suffix if not present (from args or default)
-                lm_studio_model = f"{lm_studio_model}@{args.quantization}"
-            
-            # Test the API directly
-            api_working = test_lm_studio_api_directly(lm_studio_api, lm_studio_model)
-            
-            if not api_working:
-                logger.error("Direct API test failed. Check if LM Studio is running with the correct model.")
-                return
-            
-            logger.info("Direct API test passed. Continuing with DSPy configuration.")
-            
-            # Create a custom module that uses direct API requests
-            logger.info("Creating custom LM Studio module using direct API requests...")
-            custom_module = CustomLMStudioModule(lm_studio_api, lm_studio_model, args.model_format)
-            
-            # Test the custom module
-            try:
-                test_result = custom_module(
-                    context="Genesis 1:1: In the beginning God created the heaven and the earth.",
-                    question="What did God create according to Genesis 1:1?",
-                    history=[]
-                )
-                logger.info(f"Custom module test result: {test_result.answer}")
-            except Exception as e:
-                logger.error(f"Custom module test failed: {str(e)}")
-                return
+        # Log run ID for reference
+        run_id = run.info.run_id
+        logger.info(f"MLflow run ID: {run_id}")
         
-        # Configure DSPy (we'll still try to use it for comparison)
-        if args.lm_studio:
-            if not configure_dspy(args):
-                logger.warning("Failed to configure DSPy. Continuing with custom implementation.")
-        else:
-            if not configure_dspy(args):
-                logger.error("Failed to configure DSPy. Exiting.")
-                return
+        # Log tags
+        mlflow.set_tags({
+            "model_type": "t5" if "t5" in args.model else "llm",
+            "dataset": "integrated" if args.use_integrated_data else "standard",
+            "framework": "dspy"
+        })
         
-        # Load training data
-        train_data, val_data = load_data(args.data_dir, args.train_pct)
-        if train_data is None or val_data is None:
-            logger.error("Failed to load training data. Exiting.")
+        # Load data
+        logger.info(f"Loading data from {args.data_dir}")
+        train_data, val_data = load_data(args.data_dir, args.train_pct, args)
+        
+        if not train_data or not val_data:
+            logger.error("Failed to load data. Aborting training.")
             return
         
-        logger.info(f"Loaded {len(train_data)} training examples and {len(val_data)} validation examples")
-        
-        # Use our custom module for LM Studio, otherwise use standard DSPy module
-        if args.lm_studio:
-            logger.info("Using custom LM Studio implementation...")
-            compiled_bible_qa = custom_module
+        # Create model
+        if args.lm_studio and args.lm_studio_model:
+            # Use custom LM Studio module
+            logger.info(f"Creating custom LM Studio module with model {args.lm_studio_model}")
+            model = CustomLMStudioModule(
+                api_base=os.getenv("LM_STUDIO_API_URL", "http://localhost:1234/v1"),
+                model_name=args.lm_studio_model,
+                model_format=args.model_format
+            )
         else:
-            # Initialize the module
-            bible_qa = BibleQAModule()
-            logger.info("Using basic DSPy module without optimization due to compatibility issues")
-            compiled_bible_qa = bible_qa
-            
-            # If you want to try optimization with a small dataset subset for testing
-            if args.optimizer != "none" and len(train_data) > 5:
-                try:
-                    # Just try with 2 examples to simplify the process
-                    test_examples = train_data[:2]  # Reduced to just 2 examples for faster testing
-                    logger.info(f"Testing module with {len(test_examples)} examples")
-                    
-                    # Run the module on a few test examples to verify it works
-                    for i, example in enumerate(test_examples):
-                        try:
-                            logger.info(f"Processing test example {i+1}: {example.question[:50]}...")
-                            
-                            try:
-                                # Verify the inputs are correct
-                                logger.info(f"Example inputs: {example.inputs()}")
-                                
-                                result = bible_qa(
-                                    context=example.context,
-                                    question=example.question,
-                                    history=example.history
-                                )
-                                logger.info(f"Test successful: {result.answer[:100]}...")
-                            except Exception as e:
-                                logger.error(f"Test failed in module call: {str(e)}")
-                                # Try with different approach for calling the module
-                                try:
-                                    logger.info("Trying alternative module call approach...")
-                                    result = bible_qa.forward(
-                                        context=example.context,
-                                        question=example.question,
-                                        history=example.history
-                                    )
-                                    logger.info(f"Alternative test successful: {result.answer[:100]}...")
-                                except Exception as e2:
-                                    logger.error(f"Alternative test also failed: {str(e2)}")
-                        except Exception as e:
-                            logger.error(f"Test failed during example processing: {str(e)}")
-                except Exception as e:
-                    logger.error(f"Testing failed: {str(e)}")
-                    # Continue with unoptimized version
-                    pass
+            # Create standard BibleQA module
+            logger.info("Creating standard BibleQAModule")
+            model = BibleQAModule()
         
-        # Evaluate the model using our custom implementation
-        logger.info("Starting model evaluation...")
+        # Configure optimizer
+        optimizer = configure_optimizer(args.optimizer, args.max_demos)
         
-        if args.lm_studio:
-            # Custom evaluation for our implementation
-            test_examples = val_data[:5]  # Use 5 examples for quick testing
-            correct = 0
-            total = len(test_examples)
+        if not optimizer:
+            logger.info("Skipping optimization as requested")
+            # Evaluate unoptimized model
+            metrics = evaluate_model(model, val_data)
             
-            logger.info(f"Evaluating custom module on {total} examples...")
+            # Log metrics
+            for metric_name, metric_value in metrics.items():
+                mlflow.log_metric(metric_name, metric_value)
             
-            for i, example in enumerate(test_examples):
-                try:
-                    logger.info(f"Evaluating example {i+1}/{total}")
-                    result = custom_module(
-                        context=example.context,
-                        question=example.question,
-                        history=example.history
-                    )
-                    
-                    # Log the result
-                    logger.info(f"Question: {example.question}")
-                    logger.info(f"Expected: {example.answer}")
-                    try:
-                        # Only log up to 500 characters to avoid encoding issues in console
-                        answer_str = result.answer[:500].encode('ascii', 'replace').decode('ascii')
-                        logger.info(f"Answer (first 500 chars): {answer_str}...")
-                    except:
-                        logger.info("Could not display answer due to encoding issues")
-                    
-                    # Use flexible comparison
-                    if evaluate_answers(result.answer, example.answer):
-                        correct += 1
-                        logger.info("Result: CORRECT")
-                    else:
-                        logger.info("Result: INCORRECT")
-                        
-                except Exception as e:
-                    logger.error(f"Error evaluating example: {str(e)}")
+            # Save model
+            save_model(model, args.save_dir, args.run_name)
             
-            # Calculate metrics
-            accuracy = correct / total if total > 0 else 0
-            metrics = {"accuracy": accuracy}
-            logger.info(f"Evaluation metrics: {metrics}")
-        else:
-            # Standard evaluation for DSPy modules
-            metrics = evaluate_model(compiled_bible_qa, val_data[:5])
-            logger.info(f"Evaluation metrics: {metrics}")
+            logger.info(f"Training completed without optimization. Metrics: {metrics}")
+            return
         
-        # Log metrics to MLflow
-        mlflow.log_metrics(metrics)
+        # Train/optimize the model
+        logger.info(f"Training model with {args.optimizer} optimizer")
         
-        # For LM Studio with custom module, we can't save the model using DSPy
-        if not args.lm_studio:
-            # Save the model
-            model_path = save_model(compiled_bible_qa, args.save_dir, args.run_name)
-            if model_path:
+        try:
+            if args.optimizer == "bootstrap":
+                # Configure bootstrap optimizer with train data
+                optimizer = configure_bootstrap_optimizer(train_data)
+                
+                # Compile the model
+                optimized_model = optimizer.compile(model)
+            else:
+                # Compile with other optimizers
+                compiled_model = optimizer.compile(
+                    model=model,
+                    trainset=train_data[:500],  # Use subset for efficiency
+                    valset=val_data[:100]       # Use subset for efficiency
+                )
+                
+                # Set the optimized model
+                optimized_model = compiled_model
+            
+            # Evaluate the optimized model
+            metrics = evaluate_model(optimized_model, val_data)
+            
+            # Log metrics
+            for metric_name, metric_value in metrics.items():
+                mlflow.log_metric(metric_name, metric_value)
+            
+            # Save model
+            save_model(optimized_model, args.save_dir, args.run_name)
+            
+            # Log the model to MLflow
+            try:
                 # Log model to MLflow
-                mlflow.log_artifact(model_path)
-                logger.info(f"Model saved to {model_path} and logged to MLflow")
-        else:
-            logger.info("Using custom LM Studio implementation - model not saved")
+                mlflow.pyfunc.log_model(
+                    "model",
+                    python_model=optimized_model,
+                    code_path=["src/dspy_programs/bible_qa.py"]
+                )
+                logger.info("Model logged to MLflow")
+            except Exception as e:
+                logger.error(f"Error logging model to MLflow: {e}")
+            
+            logger.info(f"Training completed successfully. Metrics: {metrics}")
+        
+        except Exception as e:
+            logger.error(f"Error during training: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            mlflow.set_tag("training_error", str(e))
+            return
 
 if __name__ == "__main__":
-    main() 
+    sys.exit(main()) 

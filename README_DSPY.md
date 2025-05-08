@@ -1,228 +1,361 @@
-# DSPy 2.6 Integration for Bible Scholar Project
+# DSPy Bible QA System
 
-This document describes the integration of DSPy 2.6 with the Bible Scholar Project to enable training and inference using smaller local models.
+This document explains how to use DSPy for training Bible Question-Answering models with enhanced capabilities and MLflow tracking.
 
 ## Overview
 
-We've integrated [DSPy 2.6](https://github.com/stanfordnlp/dspy) with [LM Studio](https://lmstudio.ai) to create a Bible Question Answering system that can:
+The DSPy Bible QA system provides:
 
-1. Use locally running LLMs through LM Studio's API
-2. Perform inference for Bible-related questions without requiring expensive cloud API calls
-3. Run on consumer hardware with appropriate quantized models
-4. Leverage the modern DSPy 2.6 API for better compatibility and access to features like adapters
+1. **Enhanced Bible QA** with conversation history support
+2. **Multiple optimizers** including GRPO, SIMBA, and BootstrapFewShot
+3. **MLflow integration** for experiment tracking
+4. **Theological assertion validation** for improved accuracy
+5. **LM Studio integration** for local model inference
+6. **Advanced optimization** with BetterTogether and InferRules
 
-## Components
+## Prerequisites
 
-### 1. Bible QA API (`final_bible_qa_api.py`)
+- Python 3.9+
+- PyTorch 2.0+ (for local model inference)
+- DSPy 2.6+
+- MLflow
+- LM Studio (for local inference)
 
-A Flask API server that provides endpoints for:
-- Health checking
-- Bible question answering
+## Setup
 
-The API creates fresh DSPy modules for each request rather than attempting to load models from disk, avoiding permission issues and ensuring consistency.
+### 1. Environment Setup
 
-### 2. DSPy Training (`simple_dspy_train.py`)
+First, ensure you have all the required dependencies:
 
-A simple script to train DSPy models using:
-- LM Studio models as teachers
-- Small local models as students
-- Bible QA examples as training data
+```bash
+pip install dspy mlflow python-dotenv requests torch
+```
 
-### 3. Testing Client (`test_bible_qa.py`)
+### 2. Environment Variables
 
-A Python script to test the Bible QA API with custom contexts and questions.
-
-### 4. Upgrade Tool (`scripts/upgrade_to_dspy26.py`)
-
-A utility script for:
-- Upgrading from DSPy 2.5.x to DSPy 2.6
-- Replacing deprecated client classes with the unified `dspy.LM` API
-- Disabling problematic integrations (Langfuse)
-
-## Setup and Usage
-
-### Prerequisites
-
-1. Install LM Studio from [lmstudio.ai](https://lmstudio.ai)
-2. Download the following models in LM Studio:
-   - `darkidol-llama-3.1-8b-instruct-1.2-uncensored` (for chat)
-   - `gguf-flan-t5-small` (for completion)
-   - `text-embedding-nomic-embed-text-v1.5@q8_0` (for embeddings)
-3. Start the LM Studio API server (Developer tab)
-4. Ensure DSPy 2.6.0 is installed: `pip install dspy-ai==2.6.0`
-
-### Environment Configuration
-
-Create a `.env.dspy` file with the following environment variables:
+Create a `.env.dspy` file in the project root with the following configuration:
 
 ```
-# Port configuration
-PORT=5005
-
-# LM Studio API endpoints
+# LM Studio API endpoints (for local inference)
 LM_STUDIO_API_URL=http://localhost:1234/v1
 LM_STUDIO_EMBEDDING_MODEL=text-embedding-nomic-embed-text-v1.5@q8_0
-LM_STUDIO_CHAT_MODEL=darkidol-llama-3.1-8b-instruct-1.2-uncensored
-LM_STUDIO_COMPLETION_MODEL=gguf-flan-t5-small
+LM_STUDIO_CHAT_MODEL=llama3-8b-instruct
 
-# Disable Langfuse to avoid NoneType has no len() errors
-LANGFUSE_PUBLIC_KEY=
-LANGFUSE_SECRET_KEY=
-LANGFUSE_HOST=https://localhost:1234
+# MLflow configuration
+MLFLOW_TRACKING_URI=./mlruns
+MLFLOW_EXPERIMENT_NAME=dspy_bible_qa
+
+# HuggingFace API (alternative to LM Studio)
+HUGGINGFACE_API_KEY=your_hf_api_key
 ```
 
-### Running the API
+### 3. Verify Environment
+
+Run the environment check script to ensure everything is set up correctly:
 
 ```bash
-python final_bible_qa_api.py
+python check_dspy_setup.py
 ```
 
-The API will start on port 5005.
+This will verify that:
+- Required libraries are installed
+- Environment variables are configured
+- LM Studio is running (if using LM Studio)
+- MLflow tracking is configured
+- Training data is available
 
-### Testing the API
+## Training Data
 
-Use the provided test script:
+The system uses a comprehensive dataset of Bible question-answer pairs.
+
+### Expanding the Training Dataset
+
+To create or expand the training dataset:
 
 ```bash
-python test_bible_qa.py --context "Your Bible verse here" --question "Your question here"
+python expand_dspy_training_data.py --examples 5000 --huggingface --deduplicate --stratify
 ```
 
-Or make requests directly to the API:
+Options:
+- `--examples`: Number of examples to generate (default: 5000)
+- `--huggingface`: Download additional data from HuggingFace
+- `--deduplicate`: Remove duplicate questions
+- `--stratify`: Stratify train/val/test splits by book or source
+- `--output-dir`: Output directory (default: data/processed/dspy_training_data/bible_corpus/dspy)
+
+This will:
+1. Run the archived data generation scripts
+2. Download HuggingFace datasets (if requested)
+3. Expand the Bible corpus with theological examples
+4. Deduplicate the dataset (if requested)
+5. Create proper train/validation/test splits
+
+### Expanding the Validation Dataset
+
+For optimization, having a robust validation dataset is crucial:
 
 ```bash
-curl -X POST http://localhost:5005/qa \
-  -H "Content-Type: application/json" \
-  -d '{"context": "In the beginning God created the heavens and the earth.", "question": "Who created the heavens and the earth?"}'
+python -m scripts.expand_validation_dataset --num-single 50 --num-multi 15
 ```
 
-## Implementation Details
+Options:
+- `--num-single`: Number of single-turn examples to generate (default: 50)
+- `--num-multi`: Number of multi-turn conversation examples to generate (default: 15)
+- `--include-theological`: Include theological questions with Strong's IDs
+- `--output-file`: Output file (default: data/processed/dspy_training_data/bible_corpus/integrated/qa_dataset_val.jsonl)
 
-### DSPy 2.6 API Integration
+This creates a diverse validation set with:
+- Theological questions with Strong's IDs
+- Multi-turn conversation examples
+- Factual Bible verse questions
 
-The project uses the DSPy 2.6 unified API approach:
+## Training Models
+
+### Using the Training Script
+
+The main training script provides a flexible way to train models with different optimizers:
+
+```bash
+python train_dspy_bible_qa.py --model "google/flan-t5-small" --optimizer grpo --lm-studio
+```
+
+Options:
+- `--model`: Model to use (default: google/flan-t5-small)
+- `--optimizer`: Optimizer to use [bootstrap, grpo, simba, miprov2] (default: bootstrap)
+- `--lm-studio`: Use LM Studio for inference
+- `--max-demos`: Maximum number of demonstrations to use (default: 8)
+- `--data-dir`: Directory containing training data
+- `--train-pct`: Percentage of data to use for training (default: 0.8)
+- `--experiment-name`: MLflow experiment name (default: dspy_bible_qa)
+- `--save-dir`: Directory to save trained models (default: models/dspy/bible_qa_t5)
+
+### Using the Training Batch File
+
+For Windows users, a batch file is provided for easier training:
+
+```bat
+train_dspy_bible_qa.bat
+```
+
+This will:
+1. Check if DSPy and MLflow are installed
+2. Expand the training data if needed
+3. Check if LM Studio is running
+4. Prompt for model size and optimizer choice
+5. Run the training script with the selected options
+
+## Advanced Optimization
+
+The system supports advanced optimization methods to reach higher accuracy levels (95%+).
+
+### Using the Optimization Script
+
+```bash
+python train_and_optimize_bible_qa.py --optimization-method better_together --max-iterations 10 --target-accuracy 0.95
+```
+
+Options:
+- `--optimization-method`: Optimization method [better_together, infer_rules, ensemble] (default: better_together)
+- `--max-iterations`: Maximum optimization iterations (default: 10)
+- `--target-accuracy`: Target accuracy to achieve (default: 0.95)
+- `--training-file`: Path to training JSONL file
+- `--validation-file`: Path to validation JSONL file
+- `--output-dir`: Directory to save optimized models (default: models/dspy/bible_qa_optimized)
+- `--teacher-model`: Teacher model for optimization (default: gpt-4o-mini)
+
+### Using the Optimization Batch File
+
+For Windows users, a batch file simplifies the optimization process:
+
+```bat
+optimize_bible_qa.bat [optimization_method]
+```
+
+Where `optimization_method` can be:
+- `better_together` (default): Ensembles multiple approaches
+- `infer_rules`: Learns rules to improve theological reasoning
+- `ensemble`: Tries both methods and selects the best
+
+### Optimization Methods
+
+1. **BetterTogether**:
+   - Combines multiple model architectures (CoT, PoT, Theological QA)
+   - Learns which approach works best for different question types
+   - Good for diverse question sets
+
+2. **InferRules**:
+   - Focuses on improving a single model
+   - Derives explicit reasoning rules to enhance performance
+   - Especially effective for theological questions with Strong's IDs
+
+3. **Ensemble**:
+   - Runs both methods with half the iterations each
+   - Selects the best-performing approach
+   - Good when uncertain which method will work better
+
+## Tracking Experiments with MLflow
+
+The system uses MLflow to track training and optimization experiments:
+
+1. **Start MLflow Server**:
+   ```bash
+   mlflow ui --host 127.0.0.1 --port 5000
+   ```
+   Then open http://localhost:5000 in your browser
+
+2. **Compare Runs**: MLflow UI allows comparing metrics across different optimizer and model combinations
+
+3. **Load Models**: Models can be loaded from MLflow for inference:
+   ```python
+   import mlflow.dspy
+   
+   # Load model from MLflow
+   model = mlflow.dspy.load_model("runs:/RUN_ID/model")
+   
+   # Use the model
+   result = model(context="Bible verse", question="Your question")
+   print(result.answer)
+   ```
+
+### Analyzing Optimization Results
+
+The project includes a dedicated tool for analyzing MLflow optimization results:
+
+```bash
+python -m scripts.analyze_mlflow_results --experiment-name bible_qa_optimization --compare-methods
+```
+
+Or use the batch file for a simplified workflow:
+
+```bat
+analyze_mlflow_results.bat
+```
+
+The analysis tool generates:
+
+1. **Learning curves**: Visualization of accuracy improvement over iterations
+2. **Method comparison**: Statistical comparison of different optimization methods
+3. **Detailed reports**: CSV and JSON reports with detailed metrics
+
+The tool supports the following options:
+- `--experiment-name`: MLflow experiment name (default: bible_qa_optimization)
+- `--output-dir`: Directory to save analysis results (default: analysis_results)
+- `--top-n`: Number of top runs to analyze (default: 5)
+- `--compare-methods`: Compare different optimization methods
+- `--tracking-uri`: MLflow tracking URI (defaults to environment variable)
+
+Results include:
+- **optimization_curves.png**: Graph showing accuracy improvement over iterations
+- **optimization_curves.html**: Interactive visualization (requires plotly)
+- **method_comparison.csv**: Statistical comparison of optimization methods
+- **method_comparison.json**: Detailed JSON report with run information
+- **method_comparison.png**: Bar chart comparing method performance
+
+## Model Architecture
+
+The Bible QA system uses a modular architecture:
+
+1. **BibleQASignature**: Defines the input/output interface including conversation history
+2. **BibleQAModule**: Implements the QA functionality with theological assertions
+3. **Optimizers**: Different optimizers (GRPO, SIMBA, etc.) for fine-tuning the prompts
+4. **TheologicalQA**: Specialized module for theological questions with Strong's ID handling
+
+### Theological QA Module
+
+The system includes a specialized module for theological questions:
 
 ```python
-# Create language model
-lm = dspy.LM(
-    f"openai/{model_name}",  # Using the provider prefix format
-    api_base="http://localhost:1234/v1", 
-    api_key="lm-studio",
-    model_type='chat'  # Explicitly specify model type
-)
+from src.dspy_programs.theological_qa import TheologicalQA
 
-# Configure DSPy to use this LM
-dspy.configure(lm=lm)  # New configuration method in DSPy 2.6
+# Initialize the theological QA system
+theological_qa = TheologicalQA()
+
+# Example with Strong's ID
+result = theological_qa(
+    context="In the beginning God created the heaven and the earth.",
+    question="What is the meaning of 'God' (H430 Elohim) in Genesis 1:1?"
+)
+print(result.answer)
 ```
 
-### DSPy Bible QA Module
+This module:
+1. Extracts and analyzes Strong's IDs in questions
+2. Performs theological exegesis on the text
+3. Formulates precise answers with theological accuracy
 
-We've created a `BibleQAModule` that:
-1. Takes a biblical context and a question as input
-2. Uses a DSPy signature to define the input/output format
-3. Returns an answer based on the context
+### Conversation History
 
-### LM Studio Integration
+The system supports multi-turn conversations with history:
 
-The system uses LM Studio's OpenAI-compatible API endpoints to:
-1. Generate embeddings for semantic search
-2. Run chat completions for answering questions
-3. Provide fallback options when DSPy modules encounter issues
+```python
+# Example with conversation history
+history = [
+    ("Who created the heavens and the earth?", "God created the heavens and the earth."),
+    ("When did this happen?", "In the beginning, as described in Genesis 1:1.")
+]
 
-### Fallback Mechanisms
+result = model(
+    context="Genesis 1:1-5",
+    question="What did God create first?",
+    history=history
+)
+```
 
-The API implements a multi-tier fallback system:
-1. First tries to use the DSPy module with the LM Studio model
-2. Falls back to direct API calls if DSPy encounters errors
-3. Provides hardcoded answers if all else fails
+### Theological Assertions
 
-## Process Management
+The model implements theological assertions to ensure accuracy:
 
-### Proper Server Management
+1. Questions about God properly reference God
+2. Questions about Jesus properly reference Jesus/Christ
+3. Biblical references are accurate and consistent
+4. Strong's IDs are correctly referenced and explained
 
-One key challenge in our implementation was managing multiple server processes effectively. Follow these guidelines:
+## Evaluating Optimized Models
 
-1. **Use Unique Ports**: Each server should have a dedicated port
-   - DSPy API: 5005
-   - Testing Servers: 5006+
-   - LM Studio: 1234 (default)
-
-2. **Background vs Foreground**:
-   - Development: Run servers in the foreground to see logs
-   - Production: Use background processes with proper logging
-
-3. **Terminating Servers**:
-   - Check running servers with `netstat -ano | findstr "5005 5004 5003"`
-   - Terminate with `taskkill /PID [PID] /F` when needed
-
-4. **Avoid Flask Debug Mode in Production**:
-   - Debug mode causes frequent reloads with file changes
-   - Use `debug=False` for stable operation
-
-### Server Management Script
-
-Use the provided server management script:
+To test optimized models:
 
 ```bash
-# Start the DSPy API in foreground mode
-./scripts/server_management.ps1 -StartDspyApi
-
-# Start the DSPy API in background mode
-./scripts/server_management.ps1 -StartDspyApi -Background
-
-# List all running servers
-./scripts/server_management.ps1 -ListServers
-
-# Stop all servers
-./scripts/server_management.ps1 -StopAll
+python test_enhanced_bible_qa.py --model-path models/dspy/bible_qa_optimized/final_YYYYMMDD_HHMMSS --batch-test --output-file optimized_results.json
 ```
 
-## Issues Resolved
-
-### DSPy 2.5 Deprecation Warnings
-
-We've successfully migrated to DSPy 2.6 using our `scripts/upgrade_to_dspy26.py` script, which:
-- Replaced deprecated `GPT3` client with the modern `dspy.LM` interface
-- Updated configuration methods from `dspy.settings.configure()` to `dspy.configure()`
-- Applied provider prefix format for models (e.g., `openai/{model_name}`)
-- Added explicit model type specifications
-
-### Langfuse Integration Issues
-
-We disabled the Langfuse integration that was causing `NoneType has no len()` errors by:
-- Setting empty environment variables for Langfuse keys
-- Configuring an invalid host to prevent connection attempts
-
-### Model Loading Issues
-
-We improved model loading reliability by:
-- Creating fresh DSPy modules for each request rather than loading from disk
-- Using the fallback mechanism in the API for robust error handling
+Options:
+- `--model-path`: Path to the optimized model directory
+- `--test-file`: Path to test JSONL file
+- `--batch-test`: Run batch testing on all examples in the test file
+- `--output-file`: Path to output results file
+- `--use-lm-studio`: Use LM Studio for inference (default: True)
 
 ## Troubleshooting
 
-If you encounter issues:
+### LM Studio Issues
 
-1. **API Not Starting**:
-   - Check if the port is already in use with `netstat -ano | findstr "5005"`
-   - Ensure LM Studio API is running on port 1234
-   - Verify DSPy 2.6.0 is installed with `pip show dspy-ai`
+- Ensure LM Studio is running with the server enabled
+- Check that the model specified in `.env.dspy` is loaded in LM Studio
+- Verify the API URL is correct (typically http://localhost:1234/v1)
+- Ensure JSON response format is configured for structured outputs
 
-2. **Model Not Responding**:
-   - Verify the correct models are loaded in LM Studio
-   - Check LM Studio API server is running in Developer tab
-   - Ensure the model names in `.env.dspy` match exactly with LM Studio
+### MLflow Issues
 
-3. **Permission Issues**:
-   - Run the application from a directory where you have write permissions
-   - Check for file locks if trying to update model files
+- If MLflow UI doesn't show experiments, check the MLFLOW_TRACKING_URI setting
+- For permission errors, check the directory permissions
+- MLflow requires write access to the tracking URI directory
+- Ensure the MLflow server is running on the correct port (5000)
 
-4. **Invalid Response Format**:
-   - For structured output, consider using the DSPy 2.6 JSON adapter:
-     ```python
-     lm_with_json = lm.with_adapter('json')
-     dspy.configure(lm=lm_with_json)
-     ```
+### Training Data Issues
 
-## License
+- If training fails due to missing data, run the data expansion script
+- For format errors, check that the JSON/JSONL files are properly formatted
+- Ensure the data directory structure matches the expected paths
 
-This integration is part of the Bible Scholar Project and follows its licensing terms. 
+### Optimization Issues
+
+- **JSON Parsing Errors**: Ensure LM Studio correctly formats JSON responses
+- **Low Accuracy**: Try increasing the number of training examples or iterations
+- **Memory Issues**: Reduce batch sizes by using fewer examples per iteration
+- **Theological Questions**: Check that Strong's IDs are properly formatted (H1234 or G5678)
+
+## Additional Resources
+
+- [DSPy Documentation](https://dspy.ai/)
+- [MLflow Documentation](https://mlflow.org/docs/latest/index.html)
+- [LM Studio Documentation](https://lmstudio.ai/) 
