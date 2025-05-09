@@ -12,7 +12,58 @@ related_docs:
 ---
 # BibleScholarProject Documentation
 
-Welcome to the BibleScholarProject documentation. This repository contains comprehensive documentation for all aspects of the project.
+Welcome to the BibleScholarProject documentation. This index will help you navigate the various documentation resources available in this project.
+
+## Getting Started
+
+- [Main README](../README.md) - Project overview and general information
+- [Environment Configuration](ENVIRONMENT_CONFIGURATION.md) - Setting up your environment
+- [Contributing Guidelines](../CONTRIBUTING.md) - How to contribute to the project
+
+## Feature Documentation
+
+- [Bible QA System](../README_BIBLE_QA.md) - Question answering system for Bible content
+- [DSPy Integration](../README_DSPY.md) - Integration with DSPy for NLP tasks
+- [Vector Search](../README_VECTOR_SEARCH.md) - Semantic search capabilities
+- [MLflow Integration](../README_DSPY_OPTIMIZATION.md) - Model optimization with MLflow
+
+## Specialized Guides
+
+- [DSPy Optimization](../README_DSPY_OPTIMIZATION.md) - Optimizing DSPy models
+- [BetterTogether Implementation](../README_DSPY_BETTER_TOGETHER.md) - Advanced model optimization
+- [Bible Corpus Training](../README_BIBLE_CORPUS_TRAINING.md) - Training models on Bible data
+- [T5 Model Training](../README_BIBLE_T5_TRAINING.md) - Training T5 models for QA
+
+## Reference Documentation
+
+- [Database Schema](reference/DATABASE_SCHEMA.md) - Database structure and relationships
+- [API Reference](reference/API_REFERENCE.md) - API endpoints and usage
+- [ETL Pipeline](features/etl_pipeline.md) - Data extraction and processing
+
+## Development Rules
+
+- [Documentation System](../cursor/rules/documentation_system.mdc) - Documentation standards
+- [DSPy Usage](../cursor/rules/dspy_usage.mdc) - DSPy implementation guidelines
+- [Theological Terms](../cursor/rules/theological_terms.mdc) - Working with theological data
+- [Database Access](../cursor/rules/database_access.mdc) - Database interaction patterns
+
+## Best Practices
+
+- [Security Guidelines](guides/security_guidelines.md) - Keeping credentials safe
+- [Testing Procedures](guides/testing_procedures.md) - How to test the codebase
+- [Code Reviews](guides/code_reviews.md) - Best practices for code reviews
+
+## Data Documentation
+
+- [Bible Corpus](../README_BIBLE_CORPUS.md) - Bible data organization
+- [External Datasets](../README_EXTERNAL_DATASETS.md) - Working with external data sources
+- [Processed Data](../data/processed/README.md) - Information about processed data
+
+## Troubleshooting
+
+- [Common Issues](guides/troubleshooting.md) - Solutions to common problems
+- [DSPy Troubleshooting](guides/dspy_troubleshooting.md) - Fixing DSPy-specific issues
+- [Environment Setup Issues](guides/environment_troubleshooting.md) - Environment problems and solutions
 
 ## Documentation Structure
 
