@@ -27,7 +27,7 @@ The Bible QA optimization system uses DSPy 2.6 to improve the accuracy of Bible 
 
 1. **Python Environment**:
    ```bash
-   pip install "dspy-ai>=2.6.0" mlflow pandas matplotlib psycopg2-binary python-dotenv
+   pip install -r requirements-dspy.txt
    ```
 
 2. **LM Studio**:
@@ -37,7 +37,32 @@ The Bible QA optimization system uses DSPy 2.6 to improve the accuracy of Bible 
 
 3. **Environment Configuration**:
    - Copy `.env.example.dspy` to `.env.dspy`
-   - Configure API endpoints and model names
+   - Configure API endpoints, model names, and API keys
+
+   Example `.env.dspy` configuration:
+   ```bash
+   # LLM Provider (choose one)
+   OPENAI_API_KEY=your_openai_key_here
+   ANTHROPIC_API_KEY=your_anthropic_key_here
+   HUGGINGFACE_API_KEY=your_huggingface_key_here
+   
+   # LM Studio Configuration
+   LM_STUDIO_URL=http://localhost:1234/v1
+   LM_STUDIO_MODEL=mistral-nemo-instruct-2407
+   
+   # MLflow Tracking
+   MLFLOW_TRACKING_URI=http://localhost:5000
+   MLFLOW_EXPERIMENT_NAME=bible_qa_optimization
+   
+   # DSPy Optimization Parameters
+   DSPY_NUM_THREADS=4
+   DSPY_CACHE_DIR=./local_cache/dspy
+   DSPY_VERBOSE=True
+   ```
+
+4. **Security Note**:
+   - Never commit `.env.dspy` to the repository
+   - The file is already in `.gitignore` by default
 
 ### Verification
 
@@ -90,6 +115,8 @@ If you prefer to run each step manually:
 3. **Start MLflow tracking server**:
    ```powershell
    powershell -Command "mlflow ui --host 127.0.0.1 --port 5000"
+   # or use the batch file
+   .\start_mlflow_server.bat
    ```
 
 4. **Run optimization**:
@@ -100,6 +127,8 @@ If you prefer to run each step manually:
 5. **Analyze results**:
    ```
    python -m scripts.analyze_mlflow_results --experiment-name bible_qa_optimization
+   # or use the batch file
+   .\analyze_mlflow_results.bat
    ```
 
 ## BetterTogether Implementation Details
