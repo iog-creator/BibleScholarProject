@@ -2,6 +2,7 @@ import os
 import re
 import yaml
 from pathlib import Path
+import subprocess
 
 REQUIRED_READMES = [
     'README.md',
@@ -14,6 +15,8 @@ CROSSREF_KEYWORDS = [
 DOC_ROOTS = [
     'docs', 'src/dspy_programs', 'src/utils', 'scripts', 'tests', 'data', 'src/api', 'src/etl', 'src/database', 'src/tvtms'
 ]
+
+IGNORE_DIRS = ['__pycache__', 'roadmaps']
 
 # Files to skip validation for - these are known to have encoding issues
 SKIP_FILES = [
@@ -153,8 +156,10 @@ def main():
         print(f"Checking directory: {root}")
         check_readme_and_frontmatter(root)
         check_crossrefs_in_dir(root)
-        # Check subdirs for README/frontmatter
+        # Check subdirs for README/frontmatter, skipping ignored dirs
         for sub in os.listdir(root):
+            if sub in IGNORE_DIRS:
+                continue
             subpath = os.path.join(root, sub)
             if os.path.isdir(subpath):
                 print(f"Checking subdirectory: {subpath}")
@@ -176,5 +181,28 @@ def main():
     else:
         print("All documentation checks passed.")
 
+def check_untracked_files(directories):
+    print("\nChecking for untracked files in key directories...")
+    # Get list of untracked files
+    result = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        stdout=subprocess.PIPE,
+        text=True
+    )
+    untracked = result.stdout.strip().split('\n') if result.stdout else []
+    flagged = []
+    for f in untracked:
+        if any(f.startswith(d + '/') or f.startswith(d + '\\') or f == d for d in directories):
+            flagged.append(f)
+    if flagged:
+        print("ERROR: The following files are untracked and must be added to git:")
+        for f in flagged:
+            print(f"  - {f}")
+        print("Please run 'git add <file>' and commit.")
+        exit(1)
+    else:
+        print("All data/scripts/docs are tracked by git.")
+
 if __name__ == '__main__':
-    main() 
+    main()
+    check_untracked_files(['data', 'scripts', 'docs', 'src', 'templates']) 

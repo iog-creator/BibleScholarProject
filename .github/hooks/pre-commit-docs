@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Pre-commit hook to validate documentation
+# Pre-commit hook to validate documentation and enforce tracking of new files
 # To install:
 # cp .github/hooks/pre-commit-docs .git/hooks/pre-commit
 # chmod +x .git/hooks/pre-commit
@@ -20,6 +20,13 @@ if [ -n "$STAGED_MD_FILES" ] || [ -n "$STAGED_MDC_FILES" ]; then
         echo "Run 'python scripts/validate_documentation.py' for details."
         exit 1
     fi
+fi
+
+# Always check for untracked files in key directories
+python scripts/validate_tracking.py
+if [ $? -ne 0 ]; then
+    echo "❌ Untracked files detected in data/scripts/docs/src/templates. Please add and commit them."
+    exit 1
 fi
 
 # Continue with commit if validation passes
