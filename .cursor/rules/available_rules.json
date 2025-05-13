@@ -1,0 +1,407 @@
+{
+    "rules": [
+        {
+            "name": "dspy_generation",
+            "path": ".cursor\\rules\\dspy_generation.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "hebrew_rules",
+            "path": ".cursor\\rules\\hebrew_rules.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "pgvector_semantic_search",
+            "path": ".cursor\\rules\\pgvector_semantic_search.mdc",
+            "description": "Guidelines for working with pgvector semantic search functionality in the BibleScholarProject",
+            "globs": [
+                "src/utils/generate_verse_embeddings.py",
+                "src/utils/test_vector_search.py",
+                "src/utils/vector_search_demo.py",
+                "src/api/vector_search_api.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "greek_morphology_count_tolerance",
+            "path": ".cursor\\rules\\greek_morphology_count_tolerance.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\huggingface_dspy_integration",
+            "path": ".cursor\\rules\\features\\huggingface_dspy_integration.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "rule_creation_guide",
+            "path": ".cursor\\rules\\rule_creation_guide.mdc",
+            "description": "Guidelines for creating and maintaining Cursor rules",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "database_access",
+            "path": ".cursor\\rules\\database_access.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "Database Test Skip Guidelines",
+            "path": ".cursor\\rules\\db_test_skip.mdc",
+            "description": "Guidelines for skipping database tests",
+            "globs": [
+                "**/tests/**/*db*.py",
+                "**/tests/**/*database*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "Model Validation Guidelines",
+            "path": ".cursor\\rules\\model_validation.mdc",
+            "description": "Guidelines for ML model validation and evaluation",
+            "globs": [
+                "**/model/**/*.py",
+                "**/dspy/**/*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "rule_template",
+            "path": ".cursor\\rules\\rule_template.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": true
+        },
+        {
+            "name": "ETL Process Guidelines",
+            "path": ".cursor\\rules\\etl_rules.mdc",
+            "description": "Standards for ETL processes and data pipeline processing",
+            "globs": [
+                "**/etl/**/*.py",
+                "**/scripts/**/*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\database_access",
+            "path": ".cursor\\rules\\standards\\database_access.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "tmp\\documentation_usage_new",
+            "path": ".cursor\\rules\\tmp\\documentation_usage_new.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\parser_strictness",
+            "path": ".cursor\\rules\\standards\\parser_strictness.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\tvtms_expected_count",
+            "path": ".cursor\\rules\\features\\tvtms_expected_count.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\documentation_usage",
+            "path": ".cursor\\rules\\standards\\documentation_usage.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\api_standards",
+            "path": ".cursor\\rules\\standards\\api_standards.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "Comprehensive Semantic Search Integration",
+            "path": ".cursor\\rules\\comprehensive_semantic_search.mdc",
+            "description": "Guidelines for integrating all Bible database resources with pgvector semantic search capabilities",
+            "globs": [
+                "src/api/comprehensive_search/*.py",
+                "src/utils/vector_search_utils.py",
+                "tests/integration/test_comprehensive_search/*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\theological_terms",
+            "path": ".cursor\\rules\\features\\theological_terms.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "tvtms_parser_fixes",
+            "path": ".cursor\\rules\\tvtms_parser_fixes.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "Pandas Null Handling Guidelines",
+            "path": ".cursor\\rules\\pandas_null_handling.mdc",
+            "description": "Guidelines for handling null values in pandas DataFrames",
+            "globs": [
+                "**/etl/**/*.py",
+                "**/scripts/**/*pandas*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "Pandas DataFrame Type Enforcement",
+            "path": ".cursor\\rules\\pandas_dataframe_type_enforcement.mdc",
+            "description": "Guidelines for enforcing data types in pandas DataFrames",
+            "globs": [
+                "**/etl/**/*.py",
+                "**/scripts/**/*pandas*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "public_domain_bible_processing",
+            "path": ".cursor\\rules\\public_domain_bible_processing.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\dspy_model_tracking",
+            "path": ".cursor\\rules\\standards\\dspy_model_tracking.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\esv_bible_processing",
+            "path": ".cursor\\rules\\features\\esv_bible_processing.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\tvtms_txt_only",
+            "path": ".cursor\\rules\\features\\tvtms_txt_only.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "TVTMS Expected Count Guidelines",
+            "path": ".cursor\\rules\\tvtms_expected_count.mdc",
+            "description": "Expected count validations for TVTMS processing",
+            "globs": [
+                "**/tvtms/**/*.py",
+                "**/scripts/*tvtms*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\etl_rules",
+            "path": ".cursor\\rules\\features\\etl_rules.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\bible_translations",
+            "path": ".cursor\\rules\\features\\bible_translations.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\dspy_generation",
+            "path": ".cursor\\rules\\standards\\dspy_generation.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\etl_pipeline",
+            "path": ".cursor\\rules\\features\\etl_pipeline.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "public_domain_bible_processing_new",
+            "path": ".cursor\\rules\\public_domain_bible_processing_new.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\db_test_skip",
+            "path": ".cursor\\rules\\standards\\db_test_skip.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "tvtms_database_handling",
+            "path": ".cursor\\rules\\tvtms_database_handling.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "dspy_usage",
+            "path": ".cursor\\rules\\dspy_usage.mdc",
+            "description": "provides guidelines for working with the DSPy training data and collection system in the BibleScholarProject",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "documentation_usage",
+            "path": ".cursor\\rules\\documentation_usage.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "etl_parser_strictness",
+            "path": ".cursor\\rules\\etl_parser_strictness.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "when_to_create_rules",
+            "path": ".cursor\\rules\\when_to_create_rules.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\rule_creation_guide",
+            "path": ".cursor\\rules\\standards\\rule_creation_guide.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "theological_terms",
+            "path": ".cursor\\rules\\theological_terms.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "standards\\documentation_maintenance",
+            "path": ".cursor\\rules\\standards\\documentation_maintenance.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "documentation_system",
+            "path": ".cursor\\rules\\documentation_system.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "tmp\\documentation_usage",
+            "path": ".cursor\\rules\\tmp\\documentation_usage.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": true
+        },
+        {
+            "name": "TVTMS Text File Format Guidelines",
+            "path": ".cursor\\rules\\tvtms_txt_only.mdc",
+            "description": "TVTMS file format handling guidelines",
+            "globs": [
+                "**/tvtms/**/*.py",
+                "**/scripts/*tvtms*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "comprehensive_search",
+            "path": ".cursor\\rules\\comprehensive_search.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\dspy_mlflow_integration",
+            "path": ".cursor\\rules\\features\\dspy_mlflow_integration.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "esv_bible_processing",
+            "path": ".cursor\\rules\\esv_bible_processing.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "test_rule",
+            "path": "test_rule.mdc",
+            "description": "This is a test rule",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "Test Rule",
+            "path": ".cursor\\rules\\test_rule.mdc",
+            "description": "This is a test rule",
+            "globs": [
+                "src/test/*.py"
+            ],
+            "alwaysApply": false
+        },
+        {
+            "name": "automated_test_rule",
+            "path": "automated_test_rule.mdc",
+            "description": "This rule was created by the automated test script",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "automated_test_rule",
+            "path": ".cursor\\rules\\automated_test_rule.mdc",
+            "description": "This file was automatically restored or completed.",
+            "globs": [],
+            "alwaysApply": false
+        },
+        {
+            "name": "features\\lm_studio_dspy_json_schema_integration",
+            "path": ".cursor\\rules\\features\\lm_studio_dspy_json_schema_integration.mdc",
+            "description": "Guidelines and requirements for integrating LM Studio (OpenAI-compatible API) with DSPy, including JSON schema/adapter handling, patching, and troubleshooting for structured output.",
+            "globs": [
+                "src/dspy_programs/contextual_insights_program.py",
+                "dspy_json_patch.py",
+                "scripts/*lm_studio*.py",
+                "src/utils/lm_studio_client.py",
+                "tests/**/*lm_studio*.py",
+                "*.md"
+            ],
+            "alwaysApply": false
+        }
+    ]
+}

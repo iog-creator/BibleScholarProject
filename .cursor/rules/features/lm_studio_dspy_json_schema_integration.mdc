@@ -1,0 +1,92 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+alwaysApply: false
+---
+
+title: LM Studio + DSPy JSON Schema Integration
+
+description: Guidelines and requirements for integrating LM Studio (OpenAI-compatible API) with DSPy, including JSON schema/adapter handling, patching, and troubleshooting for structured output.
+
+globs:
+  - "src/dspy_programs/contextual_insights_program.py"
+  - "dspy_json_patch.py"
+  - "scripts/*lm_studio*.py"
+  - "src/utils/lm_studio_client.py"
+  - "tests/**/*lm_studio*.py"
+  - "*.md" # For documentation
+
+---
+
+# LM Studio + DSPy JSON Schema Integration Rule
+
+## Purpose
+This rule ensures robust, reproducible integration between DSPy (>=2.6.x) and LM Studio (OpenAI-compatible API) for both text and structured (JSON) output. It covers best practices for configuring, patching, and troubleshooting the LM Studio + DSPy stack, especially for projects requiring JSON schema output (e.g., for ChainOfThought, Predict, or API endpoints).
+
+## Requirements
+
+1. **Environment Configuration**
+   - Set LM Studio API URL and model in `.env.dspy`:
+     ```env
+     LM_STUDIO_API_URL=http://localhost:1234/v1
+     LM_STUDIO_MODEL=mistral-nemo-instruct-2407@q4_k_m
+     ```
+   - Ensure `PYTHONUTF8=1` is set in all environments for Unicode output.
+
+2. **DSPy LM Instantiation**
+   - Use `dspy.LM(f"openai/{model_name}", api_base=..., api_key=..., ...)` for LM Studio.
+   - **Do NOT** set `response_format` directly in the LM constructor unless required for debugging. Let the patch handle it.
+   - Always enable `dspy.settings.experimental = True` for JSON adapter support.
+
+3. **Patching for JSON Schema**
+   - Import and call `dspy_json_patch.apply_patches()` before any DSPy LM instantiation.
+   - The patch will:
+     - Intercept LM Studio calls and rewrite `response_format` to a minimal OpenAI-style `json_schema` if needed.
+     - Log all patching actions for traceability.
+   - Do not manually override the patch unless debugging advanced issues.
+
+4. **Testing and Troubleshooting**
+   - Check logs for `DSPY_JSON_PATCH` messages to confirm patch activity.
+   - If LM Studio returns plain text or malformed JSON, verify:
+     - The patch is imported and applied before LM instantiation.
+     - The model supports structured output (try a simple curl test with `response_format`).
+     - No conflicting `response_format` is set in the LM constructor.
+   - If errors persist, consult the latest DSPy and LM Studio documentation and GitHub issues.
+
+5. **Documentation**
+   - Update project documentation (roadmaps, feature docs) to reflect the integration pattern and troubleshooting steps.
+   - Reference this rule in all new scripts or modules using LM Studio with DSPy.
+
+## Example Usage
+
+```python
+import dspy
+import dspy_json_patch
+dspy_json_patch.apply_patches()
+dspy.settings.experimental = True
+lm = dspy.LM(f"openai/{model_name}", api_base=..., api_key=...)
+dspy.settings.configure(lm=lm, rm=...)
+```
+
+## Related Files
+- `src/dspy_programs/contextual_insights_program.py`
+- `dspy_json_patch.py`
+- `.env.dspy`
+- `docs/roadmaps/contextual_insights_feature_roadmap.md`
+
+## References
+- [DSPy Documentation](mdc:https:/dspy.ai)
+- [LM Studio Documentation](mdc:https:/lmstudio.ai)
+- [DSPy Issue #1589](mdc:https:/github.com/stanfordnlp/dspy/issues/1589)
+
+## Detailed Patch Steps
++- **Centralized Schema Conversion**: In `dspy_json_patch.py`, added `convert_json_schema_to_lm_studio_format` to wrap any DSPy `response_format` into {"type":"json_schema","json_schema":{name, strict, schema}}.
++- **LiteLLM Client Decorator**: Patched `dspy.clients.lm.litellm_completion` to detect LM Studio via localhost and private IPs, replace or inject `response_format` with converted schema, and emit logs (`Original response_format`, `response_format set to`).
++- **JSONAdapter Layer Enforcement**: Monkey-patched `dspy.JSONAdapter.__call__` and its `_get_structured_outputs_response_format` to always enforce the correct JSON schema shape at the adapter level, with INFO logs on each call.
++- **Unified Environment Variables & Caching**: Consolidated API key loading to use `OPENAI_API_KEY` fallback; configured Flask-Caching on the `/insights` endpoint to accelerate repeat requests.
++- **Graceful Error Fallback**: Wrapped each insight generator in `contextual_insights_program.py` to catch schema parsing errors (`ValueError`), log the failure, and return empty structures to prevent 500 errors.
++- **End-to-End Testing**: Created `scripts/test_contextual_insights_endpoint.py` for server health polling and output validation; updated `tests/test_contextual_insights.py` to assert new fields (`original_language_notes`, `related_entities`) and caching behavior.
++- **Comprehensive Logging**: Ensured all patch actions and fallbacks log messages prefixed with `DSPY_JSON_PATCH` at INFO/DEBUG level for easy traceability.
++- **Dynamic Signature-based Schema**: Refactored `convert_json_schema_to_lm_studio_format` to dynamically use `signature.output_fields`, ensuring ChainOfThought output fields (`reasoning`, `language_notes_json`, `entities_json`) are included and structured-output errors are resolved.

@@ -1,0 +1,83 @@
+---
+type: restored
+title: rule_management
+description: This file was automatically restored or completed.
+globs: []
+alwaysApply: false
+---
+
+alwaysApply: false
+description: Guidelines for creating, updating, and managing Cursor rules
+globs:
+- scripts/create_cursor_rule.py
+- scripts/fix_mdc_files.py
+title: Rule Management Guide
+type: standard
+---
+
+# Rule Management Guide
+
+## Overview
+
+This guide provides instructions for creating, updating, and managing Cursor rules in the BibleScholarProject. 
+
+## Creating Rules
+
+Use the `create_cursor_rule.py` script to create new rules:
+
+```bash
+python scripts/create_cursor_rule.py rule_name "Rule Title" "Rule description" [glob_patterns]
+```
+
+### Options
+
+- `--always-apply`: Apply the rule to all files
+- `--content FILE`: Provide content from a file
+- `--type TYPE`: Set rule type (restored or always)
+- `--force`: Overwrite existing rules
+
+## Rule Structure
+
+Rules should follow this structure:
+
+1. **Metadata**: YAML frontmatter with type, title, description, globs, and alwaysApply
+2. **Content**: Markdown content with guidelines, examples, and references
+
+## Rule Types
+
+- **Feature Rules**: Guidelines for specific features
+- **Standard Rules**: Project-wide coding and documentation standards
+- **Reference Rules**: Links to detailed documentation
+
+## Rule Organization
+
+Rules are organized in these directories:
+
+- `.cursor/rules/`: Root directory for all rules
+- `.cursor/rules/features/`: Feature-specific rules
+- `.cursor/rules/standards/`: Project-wide standards
+- `.cursor/rules/tmp/`: Temporary/draft rules
+
+## Best Practices
+
+1. **Single Source of Truth**: Avoid creating duplicate rules
+2. **Rule References**: Link to detailed documentation when available
+3. **Examples**: Include code examples when relevant
+4. **Focused Scope**: Keep each rule focused on a specific concern
+5. **Glob Patterns**: Use specific glob patterns to target relevant files
+
+## Updating Rules
+
+When updating rules:
+
+1. Update the content in the rule file
+2. Run `python scripts/fix_mdc_files.py` to ensure proper formatting
+3. Update related documentation as needed
+
+## Managing Duplicates
+
+If duplicate rules exist:
+1. Identify the primary rule to keep
+2. Consolidate content from other rules
+3. Delete duplicate rules
+4. Update glob patterns to ensure proper coverage 

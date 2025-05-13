@@ -1,0 +1,249 @@
+---
+type: restored
+title: dspy_guidelines
+description: This file was automatically restored or completed.
+globs: []
+alwaysApply: false
+---
+
+alwaysApply: false
+description: Guidelines for DSPy training data and model usage in the BibleScholarProject
+globs:
+- src/dspy/**/*.py
+- scripts/*dspy*.py
+- tests/**/*dspy*.py
+title: DSPy Usage and Generation Guidelines
+type: standard
+---
+
+# DSPy Usage and Generation Guidelines
+
+## Purpose
+
+This guide provides guidelines for working with the DSPy training data and collection system in the BibleScholarProject. DSPy is used to create high-quality training examples for language models to answer Bible-related questions, analyze theological terms, and interact with the project's API and web interfaces.
+
+## Environment Configuration
+
+The project uses a dedicated `.env.example.dspy` file for DSPy-specific configuration:
+
+```bash
+# Main configuration categories:
+# 1. LLM Provider Keys (OpenAI, Anthropic, HuggingFace, etc.)
+# 2. LM Studio Configuration (for local models)
+# 3. MLflow Tracking Settings
+# 4. DSPy Optimization Parameters
+# 5. Model Configuration
+# 6. Training Configuration
+# 7. Validation Dataset Settings
+```
+
+### Setting Up Environment
+
+1. Copy the example file to create your own configuration:
+   ```bash
+   cp .env.example.dspy .env.dspy
+   ```
+
+2. Edit `.env.dspy` to add your API keys and customize settings:
+   ```bash
+   # Required for most operations
+   OPENAI_API_KEY=your_actual_key_here
+   # or
+   ANTHROPIC_API_KEY=your_actual_key_here
+   # or
+   HUGGINGFACE_API_KEY=your_actual_key_here
+   
+   # For local LM Studio
+   LM_STUDIO_URL=http://localhost:1234/v1
+   LM_STUDIO_MODEL=your_local_model_name
+   
+   # MLflow tracking
+   MLFLOW_TRACKING_URI=http://localhost:5000
+   MLFLOW_EXPERIMENT_NAME=bible_qa_optimization
+   ```
+
+3. Important security note: Never commit `.env.dspy` to the repository. It's already in `.gitignore`.
+
+## Data Collection Principles
+
+1. **Data Sources:**
+   - Bible text (original languages and translations)
+   - Lexicon entries (Strong's, BDB, etc.)
+   - Theological term definitions and mappings
+   - Versification mappings (TVTMS)
+
+2. **Data Quality:**
+   - Ensure balanced representation across books, chapters, and translations
+   - Include diverse theological terms and concepts
+   - Represent multiple reading levels and complexity
+   - Maintain theological accuracy in all examples
+
+## Directory Structure
+
+All DSPy training data should be organized as follows:
+
+```
+data/
+  processed/
+    dspy_training_data/
+      qa_dataset.jsonl
+      theological_terms_dataset.jsonl
+      translation_dataset.jsonl
+      web_interaction_dataset.jsonl
+      user_interactions_dataset.jsonl
+      problem_solution_dataset.jsonl
+```
+
+## Format Standards
+
+All DSPy training data should be formatted as JSONL files with the following structure:
+
+```json
+{"input": "What is the Strong's ID for 'elohim'?", "output": "H430"}
+{"input": "Find verses containing the term 'chesed'", "output": "Genesis 24:12, Exodus 15:13, ..."}
+```
+
+## DSPy Collection System
+
+The project includes an automated DSPy data collection system that:
+
+1. Tracks changes to the Bible database using a state hash
+2. Automatically regenerates training data when the database changes
+3. Provides hooks for triggering collection from ETL and data loading scripts
+4. Logs user interactions for real-world training data
+5. Integrates with API and web application via decorators
+
+### Key Files
+- `src/utils/dspy_collector.py` - Core collection system
+- `scripts/generate_dspy_training_data.py` - Main generation script
+- `scripts/refresh_dspy_data.py` - Command-line utility for status/refresh
+- `scripts/enhance_dspy_training.py` - Script for enhancing training data
+- `scripts/log_user_interactions.py` - User interaction logging utilities
+- `data/processed/dspy_training_data/` - Generated datasets
+
+## Implementation Guidelines
+
+```python
+# Standard DSPy data collection pattern
+import json
+import os
+
+def collect_dspy_examples(source_data, target_file, transform_fn):
+    """Collect DSPy examples from source data.
+    
+    Args:
+        source_data: Source data to transform
+        target_file: Path to save JSONL data
+        transform_fn: Function to transform source data to DSPy format
+    """
+    os.makedirs(os.path.dirname(target_file), exist_ok=True)
+    
+    examples = []
+    for item in source_data:
+        example = transform_fn(item)
+        if example:
+            examples.append(example)
+    
+    with open(target_file, 'w', encoding='utf-8') as f:
+        for example in examples:
+            f.write(json.dumps(example) + '\n')
+            
+    print(f"Generated {len(examples)} DSPy examples in {target_file}")
+    return examples
+```
+
+## Integration with MLflow
+
+The project integrates with MLflow for experiment tracking. Use these guidelines:
+
+1. Start the MLflow server before running experiments:
+   ```bash
+   mlflow ui --host 127.0.0.1 --port 5000
+   # or 
+   ./start_mlflow_server.bat
+   ```
+
+2. Use the MLflow integration in DSPy optimization:
+   ```python
+   from src.utils.mlflow_logger import log_dspy_experiment
+   
+   # After optimization
+   log_dspy_experiment(
+       model=optimized_module,
+       params=optimizer.params,
+       metrics=results,
+       artifacts={
+           "model": optimized_module_path,
+           "config": config_path
+       }
+   )
+   ```
+
+3. Track experiments with run names and descriptive tags:
+   ```python
+   import mlflow
+   
+   with mlflow.start_run(run_name="bible_qa_optimization"):
+       mlflow.set_tags({
+           "model_type": "dspy_teleprompter",
+           "dataset": "bible_qa",
+           "optimization": "better_together"
+       })
+       # Run optimization...
+   ```
+
+## Required Validation
+
+All DSPy training data must be validated using:
+
+1. **Schema validation** - Ensure all required fields are present
+2. **Theological validation** - Verify theological accuracy of examples
+3. **Coverage testing** - Check for balanced representation
+4. **Model testing** - Verify model performance on examples
+
+## Usage Guidelines
+
+### Checking Data Status
+
+Before making changes to the codebase, check the current state of DSPy training data:
+
+```bash
+python scripts/refresh_dspy_data.py status
+# Or with Makefile
+make dspy-status
+```
+
+This shows a hash representing the current database state, last update timestamp, and available data files.
+
+### Refreshing Data
+
+After making significant changes to Bible data:
+
+```bash
+python scripts/refresh_dspy_data.py refresh
+# Or with Makefile
+make dspy-refresh
+```
+
+### Logging User Interactions
+
+The system captures real user interactions through:
+
+1. **API Decorators**: Applied to API endpoints in `src/api/lexicon_api.py`
+2. **Web Decorators**: Applied to web routes in `src/web_app.py`
+3. **Manual Logging**: Using functions in `scripts/log_user_interactions.py`
+
+## LM Studio Integration
+
+For local model inference using LM Studio:
+
+1. Configure LM Studio settings in your `.env.dspy` file:
+   ```bash
+   LM_STUDIO_URL=http://localhost:1234/v1
+   LM_STUDIO_MODEL=your_local_model_name
+   ```
+
+2. Use the LM Studio integration in your DSPy code:
+   ```python
+   from src.utils.lm_studio_client import get_lm_studio_client
+   ``` 
