@@ -1,131 +1,111 @@
 # Bible Scholar Project
 
-A comprehensive Bible study and research tool leveraging artificial intelligence to explore theological concepts across different translations.
+A modern, AI-powered Bible study and research platform for exploring scripture, theology, and original languages across multiple translations.
 
-## Features
+## Project Overview
 
-- Question answering about Bible content using advanced language models
-- Cross-language theological term exploration
-- Semantic search across Bible translations
-- Lexicon integration with Strong's numbers
-- Dynamic comparison of Bible translations
-- DSPy-powered fine-tuned LLM for theological accuracy
-- Advanced model optimization for 95%+ accuracy
+Bible Scholar Project integrates advanced language models (via LM Studio), a robust Postgres database, and a modular API to deliver rich contextual insights, semantic search, and lexicon data for Bible study. The system is designed for extensibility, accuracy, and transparency, with a focus on theological term mapping and translation comparison.
 
-## New Features - DSPy 2.6 Integration
+## Key Features
 
-We've enhanced the project with DSPy 2.6 features including:
+- **Contextual Insights API**: Generate summaries, cross-references, theological term explanations, historical context, original language notes, and related entities for verses, topics, or text snippets.
+- **Translation Variants**: Compare KJV, ASV, TAGNT, TAHOT (excludes ESV by default) for any verse.
+- **Lexicon Integration**: Strong's number mapping, word-level data, and theological term linking for Hebrew and Greek.
+- **Semantic Search**: pgvector-powered search across Bible translations and topics.
+- **LM Studio Integration**: Local LLM inference for insights and normalization.
+- **DSPy/MLflow**: Model optimization and experiment tracking (optional, for advanced users).
+- **Comprehensive Testing**: Integration tests for all API features and translation validation.
+- **Documentation System**: Centralized, versioned docs with change history and project rules.
 
-- Advanced prompt optimization using the Teleprompter API
-- Improved model accuracy with theological assertions
-- MLflow integration for experiment tracking
-- Real-world Bible datasets (HuggingFace and Bible corpus)
-- Multi-turn conversation support with theological term handling
-- Enhanced validation dataset with Strong's ID theological questions
-- Additional training data sources from comprehensive Bible database
-- BetterTogether and InferRules optimization for high-accuracy theological reasoning
-
-## Training Data
-
-The Bible QA system can be trained using multiple data sources:
-
-- Core Bible QA dataset (verse questions and answers)
-- Theological terms dataset with Strong's IDs
-- Cross-language concept training with Hebrew, Greek, and Arabic
-- Biblical proper names and relationships
-- Multi-turn conversation examples
-
-See [Additional Training Data](docs/features/additional_training_data.md) for details on utilizing all available data sources.
-
-## Getting Started
+## Quickstart
 
 ### Requirements
-
-The project requires:
-
 - Python 3.9+
 - PostgreSQL with pgvector extension
-- LM Studio for local model inference
-- MLflow for experiment tracking
+- LM Studio (local LLM server)
+- MLflow (optional, for model optimization)
 
 ### Installation
+```bash
+# Clone the repository
+$ git clone https://github.com/iog-creator/BibleScholarProject.git
+$ cd BibleScholarProject
 
-1. Clone the repository
-2. Create a virtual environment: `python -m venv venv`
-3. Activate the environment: `source venv/bin/activate` (Linux/Mac) or `venv\Scripts\activate` (Windows)
-4. Install dependencies: `pip install -r requirements.txt`
-5. Install additional DSPy requirements: `pip install -r requirements-dspy.txt`
-6. Configure environment variables in `.env` and `.env.dspy`
+# Create and activate a virtual environment
+$ python -m venv venv
+$ source venv/bin/activate  # or venv\Scripts\activate on Windows
+
+# Install dependencies
+$ pip install -r requirements.txt
+$ pip install -r requirements-dspy.txt
+
+# Configure environment variables
+$ cp .env.example .env
+$ cp .env.example.dspy .env.dspy
+# Edit .env and .env.dspy as needed
+```
+
+### Database Setup
+See `docs/guides/system_build_guide.md` for full instructions.
 
 ## Usage
 
-### Bible Q&A Web Interface
+### Start LM Studio
+- Download and run LM Studio (see https://lmstudio.ai/)
+- Ensure it is running at `http://localhost:1234/v1`
 
+### Start the Contextual Insights API
 ```bash
-# Start the web interface
-python start_bible_qa_web.bat
+$ python src/api/contextual_insights_api.py
 ```
 
-Access the API at http://localhost:8000/api/bible-qa
-
-### Vector Search Demo
-
+### Example API Request
 ```bash
-# Start the vector search demo
-python start_vector_search_web.bat
+curl -X POST http://localhost:5002/api/contextual_insights/insights \
+  -H "Content-Type: application/json" \
+  -d '{"type": "verse", "reference": "John 1:1", "translation": "KJV"}'
 ```
 
-## Development
-
-### Database Setup
-
-```bash
-# Setup database security
-python setup_db_security.bat
-# Verify database schema
-python check_db_schema.py
+### Example Response
+```json
+{
+  "input": {"type": "verse", "reference": "John 1:1", "translation": "KJV"},
+  "insights": {
+    "summary": "...",
+    "theological_terms": {"Theos": "God"},
+    "cross_references": [...],
+    "historical_context": "...",
+    "original_language_notes": [...],
+    "related_entities": {"people": [...], "places": [...]},
+    "translation_variants": [...],
+    "lexical_data": [...]
+  },
+  "processing_time_seconds": 12.3
+}
 ```
 
-### Training Models
+## Testing
 
+Run all integration tests (ensure LM Studio and API are running):
 ```bash
-# Train DSPy Bible QA model
-python train_dspy_bible_qa.py
-# Train semantic search model
-python train_semantic_search_models.bat
-```
-
-### Model Optimization
-
-```bash
-# Start MLflow server
-mlflow ui --host 127.0.0.1 --port 5000
-# Optimize Bible QA model with BetterTogether
-optimize_bible_qa.bat better_together
-# Optimize Bible QA model with InferRules
-optimize_bible_qa.bat infer_rules
-```
-
-### Validation
-
-```bash
-# Expand the validation dataset
-python scripts/expand_validation_dataset.py --num-single 40 --num-multi 10
-# Test the Bible QA system
-python test_enhanced_bible_qa.py --batch-test --use-lm-studio
+pytest tests/integration/test_contextual_insights.py -v
 ```
 
 ## Documentation
+- All documentation is in the `docs/` directory.
+- See `docs/known_issues.md` for current data gaps and issues.
+- See `docs/roadmaps/contextual_insights_feature_roadmap.md` for feature plans.
+- Project rules and standards are in `.cursor/rules/`.
 
-- [DSPy Integration](README_DSPY.md)
-- [Semantic Search](README_VECTOR_SEARCH.md)
-- [Bible Corpus Training](README_BIBLE_CORPUS_TRAINING.md)
-- [Bible QA System](README_BIBLE_QA.md)
-- [T5 Model Training](README_BIBLE_T5_TRAINING.md)
-- [Dataset Validation Expansion](docs/features/dataset_validation_expansion.md)
-- [Bible QA Optimization](docs/features/bible_qa_optimization.md)
-- [Additional Training Data](docs/features/additional_training_data.md)
+## Contribution
+- Please review and follow the documentation and code standards in `docs/` and `.cursor/rules/`.
+- Use integration tests to validate changes.
+- Update documentation and add change history for all major changes.
+- For questions or contributions, open an issue or pull request on GitHub.
 
 ## License
+MIT License. See LICENSE file for details.
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## Attribution
+- Bible data from public domain and licensed sources (see `STEPBible-Data/README.md`)
+- LM Studio: https://lmstudio.ai/
